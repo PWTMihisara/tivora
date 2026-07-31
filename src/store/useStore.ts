@@ -1,0 +1,239 @@
+'use client';
+
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import { CartLine, CheckoutForm, HomeVariant, Size, SortBy, View } from '@/types';
+import { PRODUCTS, money } from '@/data/products';
+import { useSharedStore } from '@/store/useSharedStore';
+
+interface StoreState {
+  view: View;
+  homeVariant: HomeVariant;
+  cartOpen: boolean;
+  cart: CartLine[];
+  wishlist: Record<string, boolean>;
+  filterGender: 'all' | 'men' | 'women';
+  filterCategory: string;
+  sortBy: SortBy;
+  searchQuery: string;
+  selectedProductId: string | null;
+  activeImage: number;
+  selectedSize: Size | null;
+  sizeError: boolean;
+  materialsOpen: boolean;
+  shippingOpen: boolean;
+  checkoutForm: CheckoutForm;
+
+  // Navigation
+  goHome: () => void;
+  goCollections: () => void;
+  goPLPAll: () => void;
+  goPLPMen: () => void;
+  goPLPWomen: () => void;
+  setHomeVariant: (v: HomeVariant) => void;
+
+  // Cart
+  openCart: () => void;
+  closeCart: () => void;
+  addToCart: (productId: string, size: Size) => void;
+  addSelectedToCart: () => void;
+  quickAdd: (productId: string) => void;
+  incLine: (id: string, size: Size) => void;
+  decLine: (id: string, size: Size) => void;
+  removeLine: (id: string, size: Size) => void;
+  goCheckout: () => void;
+  placeOrder: () => void;
+
+  // Wishlist
+  toggleWishlist: (id: string) => void;
+
+  // PDP
+  selectProduct: (id: string) => void;
+  setActiveImage: (i: number) => void;
+  selectSize: (s: Size) => void;
+  toggleMaterials: () => void;
+  toggleShipping: () => void;
+
+  // PLP
+  setGender: (g: 'all' | 'men' | 'women') => void;
+  setCategory: (c: string) => void;
+  clearFilters: () => void;
+  setSortBy: (s: SortBy) => void;
+  setSearchQuery: (q: string) => void;
+  goSearch: (q: string) => void;
+
+  // Checkout
+  setCheckoutField: (field: keyof CheckoutForm, value: string) => void;
+
+  // Computed helpers
+  cartCount: () => number;
+  wishlistCount: () => number;
+  cartEmpty: () => boolean;
+  subtotal: () => number;
+  subtotalLabel: () => string;
+  cartLines: () => (CartLine & { priceLabel: string; lineTotalLabel: string })[];
+  filteredProducts: () => ReturnType<typeof withMeta>[];
+  featuredProducts: () => ReturnType<typeof withMeta>[];
+  selectedProduct: () => ReturnType<typeof withMeta> | null;
+  relatedProducts: () => ReturnType<typeof withMeta>[];
+}
+
+const withMeta = (p: typeof PRODUCTS[0], wishlist: Record<string, boolean>) => ({
+  ...p,
+  priceLabel: money(p.price),
+  categoryLabel: p.category.toUpperCase() + ' · ' + (p.gender === 'men' ? 'MEN' : 'WOMEN'),
+  wished: !!wishlist[p.id],
+});
+
+export const useStore = create<StoreState>()(
+  persist(
+    (set, get) => ({
+  view: 'home',
+  homeVariant: 1,
+  cartOpen: false,
+  cart: [],
+  wishlist: {},
+  filterGender: 'all',
+  filterCategory: 'all',
+  sortBy: 'newest',
+  searchQuery: '',
+  selectedProductId: null,
+  activeImage: 0,
+  selectedSize: null,
+  sizeError: false,
+  materialsOpen: false,
+  shippingOpen: false,
+  checkoutForm: { name: '', email: '', address: '', city: '', zip: '' },
+
+  goHome: () => set({ view: 'home' }),
+  goCollections: () => set({ view: 'collections' }),
+  goPLPAll: () => set({ view: 'plp', filterGender: 'all' }),
+  goPLPMen: () => set({ view: 'plp', filterGender: 'men' }),
+  goPLPWomen: () => set({ view: 'plp', filterGender: 'women' }),
+  setHomeVariant: (v) => set({ homeVariant: v }),
+
+  openCart: () => set({ cartOpen: true }),
+  closeCart: () => set({ cartOpen: false }),
+
+  addToCart: (productId, size) => {
+    if (!size) { set({ sizeError: true }); return; }
+    const product = PRODUCTS.find(p => p.id === productId);
+    if (!product) return;
+    set(s => {
+      const idx = s.cart.findIndex(c => c.id === productId && c.size === size);
+      let cart: CartLine[];
+      if (idx > -1) {
+        cart = [...s.cart];
+        cart[idx] = { ...cart[idx], qty: cart[idx].qty + 1 };
+      } else {
+        cart = [...s.cart, { id: product.id, name: product.name, price: product.price, size, qty: 1 }];
+      }
+      return { cart, cartOpen: true, sizeError: false };
+    });
+  },
+
+  addSelectedToCart: () => {
+    const { selectedProductId, selectedSize, addToCart } = get();
+    if (!selectedProductId) return;
+    if (!selectedSize) { set({ sizeError: true }); return; }
+    addToCart(selectedProductId, selectedSize);
+  },
+
+  quickAdd: (productId) => {
+    get().addToCart(productId, 'M');
+  },
+
+  incLine: (id, size) => set(s => ({ cart: s.cart.map(c => c.id === id && c.size === size ? { ...c, qty: c.qty + 1 } : c) })),
+  decLine: (id, size) => set(s => ({ cart: s.cart.map(c => c.id === id && c.size === size ? { ...c, qty: c.qty - 1 } : c).filter(c => c.qty > 0) })),
+  removeLine: (id, size) => set(s => ({ cart: s.cart.filter(c => !(c.id === id && c.size === size)) })),
+
+  goCheckout: () => set({ view: 'checkout', cartOpen: false }),
+  placeOrder: () => {
+    const { cart, checkoutForm, subtotal } = get();
+    const sub = subtotal();
+    const tax = Math.round(sub * 0.05);
+
+    // Save to real database
+    fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        customer: checkoutForm.name || 'Guest',
+        email:    checkoutForm.email,
+        address:  [checkoutForm.address, checkoutForm.city, checkoutForm.zip].filter(Boolean).join(', '),
+        items:    cart.map(c => ({ name: c.name, size: c.size, qty: c.qty, price: c.price })),
+        payment:  'Pending',
+        shipping: 0,
+        tax,
+        subtotal: sub,
+        total:    sub + tax,
+      }),
+    }).catch(err => console.error('Order save failed:', err));
+
+    set({ view: 'confirmation', cart: [] });
+  },
+
+  toggleWishlist: (id) => set(s => ({ wishlist: { ...s.wishlist, [id]: !s.wishlist[id] } })),
+
+  selectProduct: (id) => set({ view: 'pdp', selectedProductId: id, activeImage: 0, selectedSize: null, sizeError: false }),
+  setActiveImage: (i) => set({ activeImage: i }),
+  selectSize: (s) => set({ selectedSize: s, sizeError: false }),
+  toggleMaterials: () => set(s => ({ materialsOpen: !s.materialsOpen })),
+  toggleShipping: () => set(s => ({ shippingOpen: !s.shippingOpen })),
+
+  setGender: (g) => set({ filterGender: g }),
+  setCategory: (c) => set(s => ({ filterCategory: s.filterCategory === c ? 'all' : c })),
+  clearFilters: () => set({ filterGender: 'all', filterCategory: 'all', searchQuery: '' }),
+  setSortBy: (s) => set({ sortBy: s }),
+  setSearchQuery: (q) => set({ searchQuery: q }),
+  goSearch: (q) => set({ view: 'plp', filterGender: 'all', filterCategory: 'all', searchQuery: q }),
+
+  setCheckoutField: (field, value) => set(s => ({ checkoutForm: { ...s.checkoutForm, [field]: value } })),
+
+  cartCount: () => get().cart.reduce((n, c) => n + c.qty, 0),
+  wishlistCount: () => Object.values(get().wishlist).filter(Boolean).length,
+  cartEmpty: () => get().cart.length === 0,
+  subtotal: () => get().cart.reduce((n, c) => n + c.price * c.qty, 0),
+  subtotalLabel: () => money(get().subtotal()),
+
+  cartLines: () => get().cart.map(c => ({
+    ...c,
+    priceLabel: money(c.price),
+    lineTotalLabel: money(c.price * c.qty),
+  })),
+
+  filteredProducts: () => {
+    const { filterGender, filterCategory, sortBy, wishlist, searchQuery } = get();
+    const q = searchQuery.toLowerCase().trim();
+    let filtered = PRODUCTS.filter(p =>
+      (filterGender === 'all' || p.gender === filterGender) &&
+      (filterCategory === 'all' || p.category === filterCategory) &&
+      (!q || p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q))
+    );
+    if (sortBy === 'priceAsc') filtered = [...filtered].sort((a, b) => a.price - b.price);
+    else if (sortBy === 'priceDesc') filtered = [...filtered].sort((a, b) => b.price - a.price);
+    return filtered.map(p => withMeta(p, wishlist));
+  },
+
+  featuredProducts: () => {
+    const { wishlist } = get();
+    return PRODUCTS.slice(0, 4).map(p => withMeta(p, wishlist));
+  },
+
+  selectedProduct: () => {
+    const { selectedProductId, wishlist } = get();
+    const p = PRODUCTS.find(p => p.id === selectedProductId) || PRODUCTS[0];
+    return withMeta(p, wishlist);
+  },
+
+  relatedProducts: () => {
+    const { selectedProductId, wishlist } = get();
+    return PRODUCTS.filter(p => p.id !== selectedProductId).slice(0, 4).map(p => withMeta(p, wishlist));
+  },
+    }),
+    {
+      name: 'tivora-store',
+      partialize: (state) => ({ wishlist: state.wishlist }),
+    }
+  )
+);
