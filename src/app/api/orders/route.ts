@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Send emails (non-blocking — don't fail the order if email fails)
+  // Send emails — must be awaited on Vercel or function terminates before emails send
   const emailData = {
     orderId:  orderId,
     customer: body.customer,
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
     shipping: body.shipping ?? 0,
     total:    body.total,
   };
-  Promise.all([
+  await Promise.all([
     sendOrderConfirmation(emailData),
     sendAdminOrderAlert(emailData),
   ]).catch(err => console.error('Email send failed:', err));
