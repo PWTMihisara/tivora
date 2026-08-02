@@ -241,4 +241,13 @@ html.dark svg {
   .mobile-nav-link:nth-child(3) { animation-delay: 0.16s; }
   .mobile-nav-link:nth-child(4) { animation-delay: 0.24s; }
   .mobile-nav-link:nth-child(5) { animation-delay: 0.32s; }
+  .mobile-nav-link:nth-child(6) { animation-delay: 0.40s; }
+
+  /* Dark toggle in mobile nav — tablet gets the header toggle instead */
+  .mobile-dark-toggle { margin-top: 8px; }
+}
+
+/* Tablet: show dark toggle in header, hide in mobile nav (mobile nav is not shown anyway) */
+@media (min-width: 769px) {
+  .dark-toggle { display: flex !important; }
 }
