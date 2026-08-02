@@ -105,6 +105,7 @@ function badgeSty(status: string): React.CSSProperties {
 }
 
 const money = (n: number) => 'Rs. ' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtDate = (d: string) => { const dt = new Date(d); return isNaN(dt.getTime()) ? d : dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); };
 
 
 /* ─── Data ───────────────────────────────────────────────────────────────────── */
@@ -402,7 +403,7 @@ function DashboardScreen({ orders, setScreen }: { orders: Order[]; setScreen: (s
                 <div style={{ fontSize: 13, fontWeight: 600 }}>{o.id}</div>
                 <div style={{ fontSize: 12, color: '#A6A199', marginTop: 2 }}>{o.customer}</div>
               </div>
-              <div style={{ fontSize: 13, color: '#7C7870' }}>{o.date}</div>
+              <div style={{ fontSize: 13, color: '#7C7870' }}>{fmtDate(o.date)}</div>
               <div style={{ fontSize: 13, fontWeight: 700 }}>{money(o.total)}</div>
               <span style={badgeSty(o.status)}>{o.status}</span>
             </div>
@@ -456,7 +457,7 @@ function OrdersScreen({ orders, orderFilter, setOrderFilter, setSelectedOrderId,
   const handleExport = () => {
     const headers = ['Order ID', 'Customer', 'Email', 'Date', 'Items', 'Subtotal', 'Shipping', 'Tax', 'Total', 'Payment', 'Address', 'Status'];
     const rows = filtered.map(o => [
-      o.id, o.customer, o.email, o.date, o.itemCount,
+      o.id, o.customer, o.email, fmtDate(o.date), o.itemCount,
       o.subtotal, o.shipping, o.tax, o.total,
       o.payment, o.address, getStatus(o.id, o.status),
     ]);
@@ -508,7 +509,7 @@ function OrdersScreen({ orders, orderFilter, setOrderFilter, setSelectedOrderId,
                 <div style={{ fontWeight: 600 }}>{o.customer}</div>
                 <div style={{ fontSize: 12, color: '#A6A199' }}>{o.email}</div>
               </div>
-              <div style={{ color: '#7C7870' }}>{o.date}</div>
+              <div style={{ color: '#7C7870' }}>{fmtDate(o.date)}</div>
               <div style={{ color: '#7C7870' }}>{o.itemCount}</div>
               <div style={{ fontWeight: 700 }}>{money(o.total)}</div>
               <div style={{ color: '#7C7870' }}>{o.payment}</div>
@@ -1312,7 +1313,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             id: o.id,
             customer: o.customer,
             email: o.email,
-            date: new Date(o.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            date: o.created_at, // keep raw ISO timestamp for accurate date filtering
             address: o.address,
             items: (o.order_items ?? []).map(i => ({ name: i.product_name, variant: i.size, qty: i.qty, price: i.price })),
             payment: o.payment,
@@ -1349,9 +1350,9 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       .catch(console.error);
   }, []);
 
-  // Real orders take priority; merge with demo data for any missing IDs
+  // Use real orders only once they've loaded; fall back to demo data while loading
   const apiIds = new Set(apiOrders.map(o => o.id));
-  const allOrders: Order[] = [...apiOrders, ...ORDERS.filter(o => !apiIds.has(o.id))];
+  const allOrders: Order[] = apiOrders.length > 0 ? apiOrders : ORDERS;
 
   const updateSharedStatus = useSharedStore(s => s.updateOrderStatus);
 
