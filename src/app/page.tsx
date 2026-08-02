@@ -19,6 +19,10 @@ export default function Page() {
   const setCollectionBanner = useSharedStore(s => s.setCollectionBanner);
 
   useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [view]);
+
+  useEffect(() => {
     // Load real product images from Supabase
     fetch('/api/products')
       .then(r => r.json())
