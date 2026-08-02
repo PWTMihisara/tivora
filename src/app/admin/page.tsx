@@ -714,6 +714,9 @@ function ProductsScreen({ productView, setProductView, productImages, setProduct
 function InventoryScreen({ search }: { search: string }) {
   const [rows, setRows] = useState<{ id: string; sku: string; product: string; variant: string; stock: number; reorder_at: number }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [restocking, setRestocking] = useState<string | null>(null); // row id being restocked
+  const [addQty, setAddQty] = useState('');
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetch('/api/inventory')
@@ -727,6 +730,24 @@ function InventoryScreen({ search }: { search: string }) {
       .finally(() => setLoading(false));
   }, []);
 
+  const handleRestock = async (row: typeof rows[0]) => {
+    const qty = parseInt(addQty);
+    if (!qty || qty <= 0) return;
+    setSaving(true);
+    const newStock = row.stock + qty;
+    const res = await fetch('/api/inventory', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: row.id, stock: newStock }),
+    });
+    if (res.ok) {
+      setRows(prev => prev.map(r => r.id === row.id ? { ...r, stock: newStock } : r));
+      setRestocking(null);
+      setAddQty('');
+    }
+    setSaving(false);
+  };
+
   const q = search.toLowerCase();
   const filtered = q
     ? rows.filter(r => r.sku.toLowerCase().includes(q) || r.product.toLowerCase().includes(q) || r.variant.toLowerCase().includes(q))
@@ -735,8 +756,8 @@ function InventoryScreen({ search }: { search: string }) {
   return (
     <div>
       <div style={{ background: '#fff', border: '1px solid #E7E4DE', borderRadius: 12, overflowX: 'auto' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '140px 1.6fr 1fr 90px 100px 110px', minWidth: 880, padding: '14px 20px', fontSize: 11, fontWeight: 700, color: '#A6A199', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid #EFEDE8' }}>
-          {['SKU', 'Product', 'Variant', 'Stock', 'Reorder At', 'Status'].map(h => <div key={h}>{h}</div>)}
+        <div style={{ display: 'grid', gridTemplateColumns: '140px 1.6fr 1fr 90px 100px 110px 1fr', minWidth: 960, padding: '14px 20px', fontSize: 11, fontWeight: 700, color: '#A6A199', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid #EFEDE8' }}>
+          {['SKU', 'Product', 'Variant', 'Stock', 'Reorder At', 'Status', 'Restock'].map(h => <div key={h}>{h}</div>)}
         </div>
         {loading ? (
           <div style={{ padding: '24px 20px', fontSize: 13, color: '#A6A199' }}>Loading…</div>
@@ -744,14 +765,42 @@ function InventoryScreen({ search }: { search: string }) {
           <div style={{ padding: '24px 20px', fontSize: 13, color: '#A6A199' }}>{q ? `No results for "${search}"` : 'No inventory data.'}</div>
         ) : filtered.map(row => {
           const status = row.stock === 0 ? 'Out of stock' : row.stock <= row.reorder_at ? 'Low' : 'Healthy';
+          const isOpen = restocking === row.id;
           return (
-            <div key={row.id} style={{ display: 'grid', gridTemplateColumns: '140px 1.6fr 1fr 90px 100px 110px', minWidth: 880, padding: '14px 20px', alignItems: 'center', borderBottom: '1px solid #EFEDE8', fontSize: 13 }}>
+            <div key={row.id} style={{ display: 'grid', gridTemplateColumns: '140px 1.6fr 1fr 90px 100px 110px 1fr', minWidth: 960, padding: '14px 20px', alignItems: 'center', borderBottom: '1px solid #EFEDE8', fontSize: 13 }}>
               <div style={{ color: '#7C7870', fontFamily: 'monospace', fontSize: 12 }}>{row.sku}</div>
               <div style={{ fontWeight: 600 }}>{row.product}</div>
               <div style={{ color: '#7C7870' }}>{row.variant}</div>
               <div style={{ fontWeight: 700 }}>{row.stock}</div>
               <div style={{ color: '#A6A199' }}>{row.reorder_at}</div>
               <span style={badgeSty(row.stock === 0 ? 'Cancelled' : row.stock <= row.reorder_at ? 'Pending' : 'Delivered')}>{status}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {isOpen ? (
+                  <>
+                    <input
+                      type="number" min={1} placeholder="Qty"
+                      value={addQty} onChange={e => setAddQty(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleRestock(row)}
+                      style={{ width: 64, border: '1px solid #E7E4DE', borderRadius: 6, padding: '5px 8px', fontSize: 13, outline: 'none' }}
+                      autoFocus
+                    />
+                    <button
+                      onClick={() => handleRestock(row)}
+                      disabled={saving}
+                      style={{ background: '#181715', color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                    >{saving ? '…' : 'Add'}</button>
+                    <button
+                      onClick={() => { setRestocking(null); setAddQty(''); }}
+                      style={{ background: 'none', border: 'none', fontSize: 16, cursor: 'pointer', color: '#A6A199' }}
+                    >×</button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => { setRestocking(row.id); setAddQty(''); }}
+                    style={{ background: '#F5F3F0', border: '1px solid #E7E4DE', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', color: '#181715' }}
+                  >+ Restock</button>
+                )}
+              </div>
             </div>
           );
         })}
