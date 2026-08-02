@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useStore } from '@/store/useStore';
 import WishlistDrawer from './WishlistDrawer';
@@ -22,6 +22,13 @@ export default function Header() {
   const [mobileOpen, setMobileOpen]     = useState(false);
   const [wishlistOpen, setWishlistOpen] = useState(false);
   const [searchOpen, setSearchOpen]     = useState(false);
+  const [scrolled, setScrolled]         = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   const navLinks = [
     { label: 'ALL',         onClick: goPLPAll },
@@ -42,6 +49,8 @@ export default function Header() {
           background: 'rgba(253,253,252,0.96)',
           backdropFilter: 'blur(6px)',
           borderBottom: '1px solid rgba(10,10,10,0.12)',
+          boxShadow: scrolled ? '0 4px 24px rgba(10,10,10,0.08)' : 'none',
+          transition: 'box-shadow 0.4s ease',
         }}
       >
         {/* Left nav — desktop */}

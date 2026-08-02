@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useStore } from '@/store/useStore';
 import { useSharedStore } from '@/store/useSharedStore';
 import { SIZES } from '@/data/products';
@@ -25,16 +26,24 @@ export default function PDPView() {
   const toggleMaterials    = useStore(s => s.toggleMaterials);
   const toggleShipping     = useStore(s => s.toggleShipping);
 
+  const [added, setAdded] = useState(false);
+
   const product = selectedProduct();
   const related = relatedProducts();
   const savedImages = useSharedStore(s => s.productImages[product?.id ?? '']);
   const images = savedImages?.length ? savedImages : product?.images;
 
+  const handleAddToCart = () => {
+    addSelectedToCart();
+    setAdded(true);
+    setTimeout(() => setAdded(false), 3000);
+  };
+
   if (!product) return null;
 
   return (
-    <main className="pdp-layout" style={{ padding: '56px 48px 96px', maxWidth: 1280, margin: '0 auto' }}>
-      <div className="pdp-layout" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 64 }}>
+    <main className="pdp-outer" style={{ padding: '56px 48px 96px', maxWidth: 1280, margin: '0 auto' }}>
+      <div className="pdp-inner-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 64 }}>
         {/* Left: Images */}
         <div>
           {/* Main image */}
@@ -47,8 +56,10 @@ export default function PDPView() {
           >
             {images?.[activeImage] ? (
               <img
+                key={activeImage}
                 src={images[activeImage]}
                 alt={`${product.name} ${activeImage + 1}`}
+                className="pdp-img"
                 style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
               />
             ) : (
@@ -59,7 +70,7 @@ export default function PDPView() {
           </div>
 
           {/* Thumbnails */}
-          <div className="flex gap-3">
+          <div className="pdp-thumbs flex gap-3">
             {[0, 1, 2].map(i => (
               <button
                 key={i}
@@ -83,10 +94,10 @@ export default function PDPView() {
           <div style={{ font: "600 11px/1 'Inter',sans-serif", letterSpacing: '0.16em', color: '#6b6b6b', marginBottom: 14 }}>
             {product.categoryLabel}
           </div>
-          <h1 style={{ font: "800 36px/1.15 'Archivo',sans-serif", margin: '0 0 14px', letterSpacing: '-0.01em' }}>
+          <h1 className="pdp-title" style={{ font: "800 36px/1.15 'Archivo',sans-serif", margin: '0 0 14px', letterSpacing: '-0.01em' }}>
             {product.name}
           </h1>
-          <div style={{ font: "600 20px 'Inter',sans-serif", marginBottom: 28 }}>
+          <div className="pdp-price" style={{ font: "600 20px 'Inter',sans-serif", marginBottom: 28 }}>
             {product.priceLabel}
           </div>
           <p style={{ font: "400 15px/1.7 'Inter',sans-serif", color: '#4a4a48', maxWidth: 440, margin: '0 0 32px' }}>
@@ -95,7 +106,7 @@ export default function PDPView() {
 
           {/* Size */}
           <div style={{ font: "700 11px 'Inter',sans-serif", letterSpacing: '0.14em', marginBottom: 12 }}>SIZE</div>
-          <div className="flex gap-[10px] mb-[10px]">
+          <div className="pdp-sizes flex gap-[10px]" style={{ marginBottom: 24 }}>
             {SIZES.map(sz => (
               <button
                 key={sz}
@@ -119,15 +130,17 @@ export default function PDPView() {
           )}
 
           {/* CTA */}
-          <div className="flex gap-[14px] my-7">
+          <div className="flex gap-[14px]" style={{ marginTop: 16, marginBottom: 16 }}>
             <button
-              onClick={addSelectedToCart}
+              onClick={handleAddToCart}
+              className={added ? 'added-btn' : ''}
               style={{
                 flex: 1, background: '#0a0a0a', color: '#fff', border: 'none',
                 padding: 18, font: "700 12px/1 'Inter',sans-serif", letterSpacing: '0.12em', cursor: 'pointer',
+                transition: 'background 0.3s ease',
               }}
             >
-              ADD TO BAG
+              {added ? 'ADDED TO BAG ✓' : 'ADD TO BAG'}
             </button>
             <button
               onClick={() => toggleWishlist(product.id)}
@@ -171,7 +184,7 @@ export default function PDPView() {
       </div>
 
       {/* Related */}
-      <section style={{ marginTop: 96 }}>
+      <section className="related-section" style={{ marginTop: 96 }}>
         <h2 style={{ font: "800 24px 'Archivo',sans-serif", margin: '0 0 32px', letterSpacing: '-0.01em' }}>YOU MAY ALSO LIKE</h2>
         <div className="related-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 28 }}>
           {related.map(p => (

@@ -1,11 +1,37 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useStore } from '@/store/useStore';
 import { CATEGORIES, SIZES } from '@/data/products';
 import ProductCard from '@/components/ProductCard';
 import { SortBy } from '@/types';
 
+const revealStyle: React.CSSProperties = {
+  opacity: 0,
+  transform: 'translateY(24px)',
+  transition: 'opacity 0.7s cubic-bezier(0.25,0.46,0.45,0.94), transform 0.7s cubic-bezier(0.25,0.46,0.45,0.94)',
+};
+
+function useReveal() {
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      entries => entries.forEach(e => {
+        if (e.isIntersecting) {
+          const el = e.target as HTMLElement;
+          el.style.opacity = '1';
+          el.style.transform = 'translateY(0)';
+          observer.unobserve(el);
+        }
+      }),
+      { threshold: 0.1 }
+    );
+    document.querySelectorAll('[data-plp-reveal]').forEach(el => observer.observe(el));
+    return () => observer.disconnect();
+  });
+}
+
 export default function PLPView() {
+  useReveal();
   const filteredProducts = useStore(s => s.filteredProducts);
   const filterGender     = useStore(s => s.filterGender);
   const filterCategory   = useStore(s => s.filterCategory);
@@ -97,13 +123,14 @@ export default function PLPView() {
             </div>
           ) : (
             <div className="plp-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 28 }}>
-              {products.map(p => (
-                <ProductCard
-                  key={p.id}
-                  product={p}
-                  onSelect={p => selectProduct(p.id)}
-                  onQuickAdd={p => quickAdd(p.id)}
-                />
+              {products.map((p, i) => (
+                <div key={p.id} data-plp-reveal="" style={{ ...revealStyle, transitionDelay: `${(i % 3) * 80}ms` }}>
+                  <ProductCard
+                    product={p}
+                    onSelect={p => selectProduct(p.id)}
+                    onQuickAdd={p => quickAdd(p.id)}
+                  />
+                </div>
               ))}
             </div>
           )}

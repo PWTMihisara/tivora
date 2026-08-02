@@ -48,12 +48,12 @@ export default function Page() {
     <div style={{ position: 'relative', minHeight: '100vh', background: '#fdfdfc', color: '#0a0a0a' }}>
       <Header />
 
-      {view === 'home'         && <HomeView />}
-      {view === 'collections'  && <CollectionsView />}
-      {view === 'plp'          && <PLPView />}
-      {view === 'pdp'          && <PDPView />}
-      {view === 'checkout'     && <CheckoutView />}
-      {view === 'confirmation' && <ConfirmationView />}
+      {view === 'home'         && <div key="home"         className="view-fade"><HomeView /></div>}
+      {view === 'collections'  && <div key="collections"  className="view-fade"><CollectionsView /></div>}
+      {view === 'plp'          && <div key="plp"          className="view-fade"><PLPView /></div>}
+      {view === 'pdp'          && <div key="pdp"          className="view-fade"><PDPView /></div>}
+      {view === 'checkout'     && <div key="checkout"     className="view-fade"><CheckoutView /></div>}
+      {view === 'confirmation' && <div key="confirmation" className="view-fade"><ConfirmationView /></div>}
 
       {view !== 'confirmation' && <Footer />}
 

@@ -44,7 +44,7 @@ export default function ProductCard({ product, onSelect, onQuickAdd }: Props) {
         style={{
           aspectRatio: '4/5',
           background: 'repeating-linear-gradient(45deg,#e7e5e0,#e7e5e0 12px,#dcd9d2 12px,#dcd9d2 24px)',
-          overflow: 'hidden',
+          overflow: 'hidden', willChange: 'transform',
         }}
       >
         {/* Product image */}
@@ -52,6 +52,7 @@ export default function ProductCard({ product, onSelect, onQuickAdd }: Props) {
           <img
             src={images[0]}
             alt={product.name}
+            className="card-img"
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }}
           />
         ) : (
