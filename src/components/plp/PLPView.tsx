@@ -72,7 +72,7 @@ export default function PLPView() {
         {/* Sidebar */}
         <aside className="plp-sidebar">
           <div style={{ font: "700 11px 'Inter',sans-serif", letterSpacing: '0.14em', color: '#0a0a0a', marginBottom: 16 }}>GENDER</div>
-          <div className="flex flex-col gap-[10px] mb-8">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 32 }}>
             {(['all', 'men', 'women'] as const).map(g => (
               <button key={g} style={genderBtn(filterGender === g)} onClick={() => setGender(g)}>
                 {g === 'all' ? 'All' : g.charAt(0).toUpperCase() + g.slice(1)}
@@ -81,7 +81,7 @@ export default function PLPView() {
           </div>
 
           <div style={{ font: "700 11px 'Inter',sans-serif", letterSpacing: '0.14em', color: '#0a0a0a', marginBottom: 16 }}>CATEGORY</div>
-          <div className="flex flex-col gap-[10px] mb-8">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 32 }}>
             {CATEGORIES.map(cat => (
               <button key={cat} style={genderBtn(filterCategory === cat)} onClick={() => setCategory(cat)}>
                 {cat}

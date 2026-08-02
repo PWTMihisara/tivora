@@ -23,6 +23,20 @@ export default function Header() {
   const [wishlistOpen, setWishlistOpen] = useState(false);
   const [searchOpen, setSearchOpen]     = useState(false);
   const [scrolled, setScrolled]         = useState(false);
+  const [dark, setDark]                 = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('tivora-dark') === '1';
+    setDark(saved);
+    document.documentElement.classList.toggle('dark', saved);
+  }, []);
+
+  const toggleDark = () => {
+    const next = !dark;
+    setDark(next);
+    localStorage.setItem('tivora-dark', next ? '1' : '0');
+    document.documentElement.classList.toggle('dark', next);
+  };
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
@@ -59,7 +73,7 @@ export default function Header() {
             <button
               key={label}
               onClick={onClick}
-              className="bg-transparent border-none cursor-pointer hover:text-[#6b6b6b] transition-colors"
+              className="header-nav-link bg-transparent border-none cursor-pointer"
               style={{ font: "600 12px/1 'Inter',sans-serif", letterSpacing: '0.14em', color: '#0a0a0a' }}
             >
               {label}
@@ -83,11 +97,39 @@ export default function Header() {
           onClick={goHome}
           className="absolute left-1/2 -translate-x-1/2 bg-transparent border-none cursor-pointer p-0"
         >
-          <Image src="/tivora-logo.png" alt="TIVORA" height={110} width={380} className="block h-[110px] w-auto" style={{ filter: 'brightness(0)' }} />
+          <Image src="/tivora-logo.png" alt="TIVORA" height={110} width={380} className="logo-img block h-[110px] w-auto" style={{ filter: 'brightness(0)' }} />
         </button>
 
         {/* Right actions */}
         <div className="flex items-center gap-[22px]">
+          {/* Dark mode toggle */}
+          <button
+            onClick={toggleDark}
+            className="bg-transparent border-none cursor-pointer dark-toggle"
+            aria-label="Toggle dark mode"
+            style={{ color: '#0a0a0a', padding: 0, lineHeight: 1 }}
+          >
+            {dark ? (
+              /* Sun icon */
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="5"/>
+                <line x1="12" y1="1" x2="12" y2="3"/>
+                <line x1="12" y1="21" x2="12" y2="23"/>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                <line x1="1" y1="12" x2="3" y2="12"/>
+                <line x1="21" y1="12" x2="23" y2="12"/>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+              </svg>
+            ) : (
+              /* Moon icon */
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+              </svg>
+            )}
+          </button>
+
           {/* Search */}
           <button
             onClick={() => setSearchOpen(true)}
@@ -140,7 +182,7 @@ export default function Header() {
             <button
               key={label}
               onClick={() => handleNav(onClick)}
-              className="bg-transparent border-none cursor-pointer"
+              className="mobile-nav-link bg-transparent border-none cursor-pointer"
               style={{ font: "700 20px/1 'Archivo',sans-serif", letterSpacing: '0.14em', color: '#0a0a0a' }}
             >
               {label}

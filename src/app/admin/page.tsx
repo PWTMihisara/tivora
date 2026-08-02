@@ -3,26 +3,25 @@
 import { useState, useEffect } from 'react';
 import { useSharedStore, SharedOrder } from '@/store/useSharedStore';
 import { PRODUCTS as STOREFRONT_PRODUCTS } from '@/data/products';
-import { supabase } from '@/lib/supabase';
 
 /* ─── Login Screen ───────────────────────────────────────────────────────────── */
+
+const ADMIN_EMAIL    = 'admin@tivora.com';
+const ADMIN_PASSWORD = 'admin123';
+const AUTH_KEY       = 'tivora_admin_auth';
 
 function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
   const [error, setError]       = useState('');
-  const [loading, setLoading]   = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError('');
-    const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (authError) {
-      setError('Invalid email or password.');
-    } else {
+    if (email.trim() === ADMIN_EMAIL && password.trim() === ADMIN_PASSWORD) {
+      localStorage.setItem(AUTH_KEY, '1');
       onLogin();
+    } else {
+      setError('Invalid email or password.');
     }
   };
 
@@ -45,28 +44,27 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
             <div style={{ fontSize: 12, fontWeight: 600, color: '#7C7870', marginBottom: 6 }}>Email</div>
             <input
               type="email" value={email} onChange={e => { setEmail(e.target.value); setError(''); }}
-              placeholder="admin@tivora.com" required style={inputSty}
+              placeholder="admin@tivora.com" required autoComplete="off" style={inputSty}
             />
           </div>
           <div>
             <div style={{ fontSize: 12, fontWeight: 600, color: '#7C7870', marginBottom: 6 }}>Password</div>
             <input
               type="password" value={password} onChange={e => { setPassword(e.target.value); setError(''); }}
-              placeholder="••••••••" required style={inputSty}
+              placeholder="••••••••" required autoComplete="new-password" style={inputSty}
             />
           </div>
           {error && (
             <div style={{ fontSize: 13, color: '#A6402E', background: '#FBEAE7', border: '1px solid #F5C6BC', borderRadius: 8, padding: '10px 14px' }}>{error}</div>
           )}
-          <button
-            type="submit"
-            disabled={loading}
-            style={{ width: '100%', background: loading ? '#7C7870' : '#181715', color: '#fff', border: 'none', borderRadius: 8, padding: '12px 0', fontSize: 14, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', marginTop: 6, letterSpacing: '0.04em', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-          >
-            {loading && <div style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />}
-            {loading ? 'Signing in…' : 'Sign In'}
+          <button type="submit" style={{ width: '100%', background: '#181715', color: '#fff', border: 'none', borderRadius: 8, padding: '12px 0', fontSize: 14, fontWeight: 700, cursor: 'pointer', marginTop: 6, letterSpacing: '0.04em' }}>
+            Sign In
           </button>
         </form>
+
+        <div style={{ textAlign: 'center', marginTop: 20, fontSize: 12, color: '#A6A199' }}>
+          Use <strong>admin@tivora.com</strong> / <strong>admin123</strong>
+        </div>
       </div>
     </div>
   );
@@ -79,13 +77,13 @@ type Screen = 'dashboard' | 'orders' | 'products' | 'inventory' | 'collections' 
 
 interface OrderItem { name: string; variant: string; qty: number; price: number }
 interface Order {
-  id: string; customer: string; email: string; date: string; createdAt: string;
+  id: string; customer: string; email: string; date: string;
   items: OrderItem[]; payment: string; address: string;
   status: OrderStatus; shipping: number; tax: number;
   itemCount: number; subtotal: number; total: number;
 }
 interface InventoryRow { sku: string; product: string; variant: string; stock: number; reorderAt: number }
-interface Collection { id?: string; name: string; count: number; active: boolean }
+interface Collection { name: string; count: number; active: boolean }
 interface Customer { name: string; email: string; location: string; orders: number; ltv: number; lastOrder: string }
 interface TeamMember { name: string; email: string; role: string }
 
@@ -112,14 +110,14 @@ const money = (n: number) => 'Rs. ' + n.toLocaleString('en-US', { minimumFractio
 /* ─── Data ───────────────────────────────────────────────────────────────────── */
 
 const ORDERS: Order[] = [
-  { id: '#3021', customer: 'Elena Marceau',  email: 'elena.m@mail.com',    date: 'Jul 28', createdAt: new Date(Date.now() - 3*24*60*60*1000).toISOString(), items: [{ name: 'Wool Overcoat',     variant: 'Charcoal / M', qty: 1, price: 640 }, { name: 'Silk Scarf',   variant: 'Ivory',      qty: 1, price: 180 }], payment: 'Visa •• 4471',        address: '12 Rue de Varenne, Paris, FR',       status: 'Processing', shipping: 18, tax: 52, itemCount: 2, subtotal: 820, total: 890 },
-  { id: '#3020', customer: 'Marcus Ide',     email: 'marcus.ide@mail.com', date: 'Jul 28', createdAt: new Date(Date.now() - 3*24*60*60*1000).toISOString(),  items: [{ name: 'Cashmere Sweater',  variant: 'Navy / L',     qty: 2, price: 320 }],                                                                     payment: 'Amex •• 1082',        address: '88 Fifth Ave, New York, US',         status: 'Pending',    shipping: 0,  tax: 40, itemCount: 2, subtotal: 640, total: 680 },
-  { id: '#3019', customer: 'Sofia Reyes',    email: 'sofia.r@mail.com',    date: 'Jul 27', createdAt: new Date(Date.now() - 4*24*60*60*1000).toISOString(),  items: [{ name: 'Leather Loafers',   variant: 'Tan / 40',     qty: 1, price: 410 }],                                                                     payment: 'Mastercard •• 9903', address: '4 Calle Mayor, Madrid, ES',          status: 'Shipped',    shipping: 22, tax: 33, itemCount: 1, subtotal: 410, total: 465 },
-  { id: '#3018', customer: 'Thomas Berg',    email: 'thomas.b@mail.com',   date: 'Jul 27', createdAt: new Date(Date.now() - 4*24*60*60*1000).toISOString(),  items: [{ name: 'Tailored Trousers', variant: 'Grey / 32',    qty: 1, price: 290 }, { name: 'Linen Shirt', variant: 'White / M',  qty: 2, price: 150 }], payment: 'Visa •• 2210',        address: '19 Königstraße, Berlin, DE',         status: 'Delivered',  shipping: 15, tax: 47, itemCount: 3, subtotal: 590, total: 652 },
-  { id: '#3017', customer: 'Ava Whitfield',  email: 'ava.w@mail.com',      date: 'Jul 26', createdAt: new Date(Date.now() - 5*24*60*60*1000).toISOString(),  items: [{ name: 'Silk Blouse',       variant: 'Blush / S',    qty: 1, price: 210 }],                                                                     payment: 'Visa •• 7734',        address: '5 King St, London, UK',              status: 'Cancelled',  shipping: 0,  tax: 0,  itemCount: 1, subtotal: 210, total: 210 },
-  { id: '#3016', customer: 'Noah Kessler',   email: 'noah.k@mail.com',     date: 'Jul 26', createdAt: new Date(Date.now() - 5*24*60*60*1000).toISOString(),  items: [{ name: 'Merino Blazer',     variant: 'Navy / 40',    qty: 1, price: 580 }],                                                                     payment: 'Amex •• 4420',        address: '70 Bahnhofstrasse, Zurich, CH',      status: 'Delivered',  shipping: 0,  tax: 46, itemCount: 1, subtotal: 580, total: 626 },
-  { id: '#3015', customer: 'Isla Fontaine',  email: 'isla.f@mail.com',     date: 'Jul 25', createdAt: new Date(Date.now() - 6*24*60*60*1000).toISOString(),  items: [{ name: 'Cashmere Sweater',  variant: 'Camel / M',    qty: 1, price: 320 }, { name: 'Wool Scarf',  variant: 'Grey',       qty: 1, price: 120 }], payment: 'Mastercard •• 3391', address: '3 Via Montenapoleone, Milan, IT',    status: 'Shipped',    shipping: 20, tax: 35, itemCount: 2, subtotal: 440, total: 495 },
-  { id: '#3014', customer: 'Ethan Cole',     email: 'ethan.c@mail.com',    date: 'Jul 24', createdAt: new Date(Date.now() - 7*24*60*60*1000).toISOString(),  items: [{ name: 'Leather Belt',      variant: 'Black / 34',   qty: 1, price: 95  }],                                                                     payment: 'Visa •• 6650',        address: '200 Bay St, Toronto, CA',            status: 'Delivered',  shipping: 12, tax: 8,  itemCount: 1, subtotal: 95,  total: 115 },
+  { id: '#3021', customer: 'Elena Marceau',  email: 'elena.m@mail.com',    date: 'Jul 28', items: [{ name: 'Wool Overcoat',     variant: 'Charcoal / M', qty: 1, price: 640 }, { name: 'Silk Scarf',   variant: 'Ivory',      qty: 1, price: 180 }], payment: 'Visa •• 4471',        address: '12 Rue de Varenne, Paris, FR',       status: 'Processing', shipping: 18, tax: 52, itemCount: 2, subtotal: 820, total: 890 },
+  { id: '#3020', customer: 'Marcus Ide',     email: 'marcus.ide@mail.com', date: 'Jul 28', items: [{ name: 'Cashmere Sweater',  variant: 'Navy / L',     qty: 2, price: 320 }],                                                                     payment: 'Amex •• 1082',        address: '88 Fifth Ave, New York, US',         status: 'Pending',    shipping: 0,  tax: 40, itemCount: 2, subtotal: 640, total: 680 },
+  { id: '#3019', customer: 'Sofia Reyes',    email: 'sofia.r@mail.com',    date: 'Jul 27', items: [{ name: 'Leather Loafers',   variant: 'Tan / 40',     qty: 1, price: 410 }],                                                                     payment: 'Mastercard •• 9903', address: '4 Calle Mayor, Madrid, ES',          status: 'Shipped',    shipping: 22, tax: 33, itemCount: 1, subtotal: 410, total: 465 },
+  { id: '#3018', customer: 'Thomas Berg',    email: 'thomas.b@mail.com',   date: 'Jul 27', items: [{ name: 'Tailored Trousers', variant: 'Grey / 32',    qty: 1, price: 290 }, { name: 'Linen Shirt', variant: 'White / M',  qty: 2, price: 150 }], payment: 'Visa •• 2210',        address: '19 Königstraße, Berlin, DE',         status: 'Delivered',  shipping: 15, tax: 47, itemCount: 3, subtotal: 590, total: 652 },
+  { id: '#3017', customer: 'Ava Whitfield',  email: 'ava.w@mail.com',      date: 'Jul 26', items: [{ name: 'Silk Blouse',       variant: 'Blush / S',    qty: 1, price: 210 }],                                                                     payment: 'Visa •• 7734',        address: '5 King St, London, UK',              status: 'Cancelled',  shipping: 0,  tax: 0,  itemCount: 1, subtotal: 210, total: 210 },
+  { id: '#3016', customer: 'Noah Kessler',   email: 'noah.k@mail.com',     date: 'Jul 26', items: [{ name: 'Merino Blazer',     variant: 'Navy / 40',    qty: 1, price: 580 }],                                                                     payment: 'Amex •• 4420',        address: '70 Bahnhofstrasse, Zurich, CH',      status: 'Delivered',  shipping: 0,  tax: 46, itemCount: 1, subtotal: 580, total: 626 },
+  { id: '#3015', customer: 'Isla Fontaine',  email: 'isla.f@mail.com',     date: 'Jul 25', items: [{ name: 'Cashmere Sweater',  variant: 'Camel / M',    qty: 1, price: 320 }, { name: 'Wool Scarf',  variant: 'Grey',       qty: 1, price: 120 }], payment: 'Mastercard •• 3391', address: '3 Via Montenapoleone, Milan, IT',    status: 'Shipped',    shipping: 20, tax: 35, itemCount: 2, subtotal: 440, total: 495 },
+  { id: '#3014', customer: 'Ethan Cole',     email: 'ethan.c@mail.com',    date: 'Jul 24', items: [{ name: 'Leather Belt',      variant: 'Black / 34',   qty: 1, price: 95  }],                                                                     payment: 'Visa •• 6650',        address: '200 Bay St, Toronto, CA',            status: 'Delivered',  shipping: 12, tax: 8,  itemCount: 1, subtotal: 95,  total: 115 },
 ];
 
 
@@ -250,7 +248,7 @@ function Sidebar({ screen, setScreen, pendingCount, onLogout }: {
 
 function TopHeader({ screen, search, setSearch, pendingOrders, lowStockItems, onGoOrders, onGoInventory }: {
   screen: Screen; search: string; setSearch: (v: string) => void;
-  pendingOrders: Order[]; lowStockItems: InventoryRow[];
+  pendingOrders: Order[]; lowStockItems: { product: string; stock: number; reorder_at: number }[];
   onGoOrders: () => void; onGoInventory: () => void;
 }) {
   const meta = SCREEN_META[screen];
@@ -260,7 +258,7 @@ function TopHeader({ screen, search, setSearch, pendingOrders, lowStockItems, on
 
   const notifications = [
     ...pendingOrders.map(o => ({ type: 'order' as const, title: `New order ${o.id}`, sub: `${o.customer} · ${money(o.total)}`, action: onGoOrders })),
-    ...lowStockItems.map(r => ({ type: 'stock' as const, title: `Low stock: ${r.product}`, sub: `${r.stock} units remaining (reorder at ${r.reorderAt})`, action: onGoInventory })),
+    ...lowStockItems.map(r => ({ type: 'stock' as const, title: `Low stock: ${r.product}`, sub: `${r.stock} units remaining (reorder at ${r.reorder_at})`, action: onGoInventory })),
   ];
   const hasNotif = notifications.length > 0;
 
@@ -309,7 +307,7 @@ function TopHeader({ screen, search, setSearch, pendingOrders, lowStockItems, on
                 ) : (
                   <div style={{ maxHeight: 340, overflowY: 'auto' }}>
                     {notifications.map((n, i) => (
-                      <button key={i} onClick={() => { n.action(); setNotifOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '12px 18px', borderBottom: '1px solid #EFEDE8', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                      <button key={i} onClick={() => { n.action(); setNotifOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '12px 18px', background: 'none', border: 'none', borderBottom: '1px solid #EFEDE8', cursor: 'pointer', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                         <div style={{ width: 32, height: 32, borderRadius: 8, flexShrink: 0, background: n.type === 'order' ? '#EAF3EC' : '#FBF0DE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>
                           {n.type === 'order' ? '📦' : '⚠️'}
                         </div>
@@ -335,58 +333,51 @@ function TopHeader({ screen, search, setSearch, pendingOrders, lowStockItems, on
 /* ─── Dashboard ──────────────────────────────────────────────────────────────── */
 
 function DashboardScreen({ orders, setScreen }: { orders: Order[]; setScreen: (s: Screen) => void }) {
-  const now     = new Date();
-  const ms30    = 30 * 24 * 60 * 60 * 1000;
-  const cutoff  = new Date(now.getTime() - ms30);
-  const cutoff2 = new Date(now.getTime() - ms30 * 2);
+  const now = Date.now();
+  const day30 = 30 * 24 * 60 * 60 * 1000;
+  const day60 = 60 * 24 * 60 * 60 * 1000;
 
-  const recent = orders.filter(o => new Date(o.createdAt) >= cutoff && o.status !== 'Cancelled');
-  const prior  = orders.filter(o => new Date(o.createdAt) >= cutoff2 && new Date(o.createdAt) < cutoff && o.status !== 'Cancelled');
+  const recent   = orders.filter(o => o.status !== 'Cancelled' && now - new Date(o.date).getTime() <= day30);
+  const previous = orders.filter(o => { const t = new Date(o.date).getTime(); return o.status !== 'Cancelled' && now - t > day30 && now - t <= day60; });
 
-  const revenue30    = recent.reduce((n, o) => n + o.total, 0);
-  const revenuePrior = prior.reduce((n, o) => n + o.total, 0);
-  const orders30     = recent.length;
-  const ordersPrior  = prior.length;
-  const aov30        = orders30 > 0 ? revenue30 / orders30 : 0;
-  const aovPrior     = ordersPrior > 0 ? revenuePrior / ordersPrior : 0;
-  const customers30  = new Set(recent.map(o => o.email)).size;
-  const customersPrior = new Set(prior.map(o => o.email)).size;
+  const rev30    = recent.reduce((s, o) => s + o.total, 0);
+  const revPrev  = previous.reduce((s, o) => s + o.total, 0);
+  const revDelta = revPrev > 0 ? ((rev30 - revPrev) / revPrev * 100).toFixed(1) : null;
 
-  const pct = (a: number, b: number) => {
-    if (b === 0) return a > 0 ? '+100%' : '0%';
-    const v = ((a - b) / b) * 100;
-    return (v >= 0 ? '+' : '') + v.toFixed(1) + '% vs prior period';
-  };
+  const avgOrder   = recent.length ? Math.round(rev30 / recent.length) : 0;
+  const avgPrev    = previous.length ? Math.round(revPrev / previous.length) : 0;
+  const avgDelta   = avgPrev > 0 ? ((avgOrder - avgPrev) / avgPrev * 100).toFixed(1) : null;
 
-  const KPIS = [
-    { label: 'Revenue (30d)',    value: money(revenue30), delta: pct(revenue30, revenuePrior), up: revenue30 >= revenuePrior },
-    { label: 'Orders',           value: orders30.toLocaleString(), delta: pct(orders30, ordersPrior), up: orders30 >= ordersPrior },
-    { label: 'Avg. Order Value', value: money(aov30), delta: pct(aov30, aovPrior), up: aov30 >= aovPrior },
-    { label: 'New Customers',    value: customers30.toLocaleString(), delta: pct(customers30, customersPrior), up: customers30 >= customersPrior },
-  ];
+  const orderDelta = previous.length > 0 ? ((recent.length - previous.length) / previous.length * 100).toFixed(1) : null;
 
-  // Top products by units sold from order items
-  const productSales: Record<string, number> = {};
-  orders.forEach(o => o.items.forEach(i => {
-    productSales[i.name] = (productSales[i.name] ?? 0) + i.qty;
+  // Top products from real orders
+  const productSales: Record<string, { sold: number; revenue: number }> = {};
+  orders.forEach(o => o.items.forEach(item => {
+    if (!productSales[item.name]) productSales[item.name] = { sold: 0, revenue: 0 };
+    productSales[item.name].sold    += item.qty;
+    productSales[item.name].revenue += item.price * item.qty;
   }));
-  const topProducts = STOREFRONT_PRODUCTS
-    .map(p => ({ ...p, sold: productSales[p.name] ?? 0 }))
-    .sort((a, b) => b.sold - a.sold)
+  const topProducts = Object.entries(productSales)
+    .map(([name, d]) => ({ name, ...d }))
+    .sort((a, b) => b.revenue - a.revenue)
     .slice(0, 4);
 
-  // Revenue trend — last 12 weeks
+  // Revenue bars — last 12 weeks
   const weekMs = 7 * 24 * 60 * 60 * 1000;
-  const revByWeek = Array.from({ length: 12 }, (_, i) => {
-    const weekStart = new Date(now.getTime() - (11 - i) * weekMs);
-    const weekEnd   = new Date(now.getTime() - (10 - i) * weekMs);
-    return orders.filter(o => {
-      const d = new Date(o.createdAt);
-      return d >= weekStart && d < weekEnd && o.status !== 'Cancelled';
-    }).reduce((n, o) => n + o.total, 0);
+  const weeklyRev = Array.from({ length: 12 }, (_, i) => {
+    const ws = now - (11 - i) * weekMs;
+    return orders.filter(o => { const t = new Date(o.date).getTime(); return o.status !== 'Cancelled' && t >= ws && t < ws + weekMs; }).reduce((s, o) => s + o.total, 0);
   });
-  const maxRev = Math.max(...revByWeek, 1);
-  const revBars = revByWeek.map(v => Math.max(4, (v / maxRev) * 140));
+  const maxBar = Math.max(...weeklyRev, 1);
+
+  const fmt = (delta: string | null, up: boolean) => delta ? `${up ? '+' : ''}${delta}% vs prior 30d` : 'No prior data';
+
+  const KPIS = [
+    { label: 'Revenue (30d)',    value: money(rev30),    delta: fmt(revDelta, Number(revDelta) >= 0),   up: Number(revDelta) >= 0  },
+    { label: 'Orders',           value: recent.length,   delta: fmt(orderDelta, Number(orderDelta) >= 0), up: Number(orderDelta) >= 0 },
+    { label: 'Avg. Order Value', value: money(avgOrder), delta: fmt(avgDelta, Number(avgDelta) >= 0),   up: Number(avgDelta) >= 0  },
+    { label: 'Total Orders',     value: orders.length,   delta: `All time`,                              up: true                   },
+  ];
   return (
     <div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 20 }}>
@@ -421,14 +412,15 @@ function DashboardScreen({ orders, setScreen }: { orders: Order[]; setScreen: (s
         <div style={{ background: '#fff', border: '1px solid #E7E4DE', borderRadius: 12, padding: 24 }}>
           <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>Top Products</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {topProducts.map(p => (
+            {topProducts.length === 0
+              ? <div style={{ fontSize: 13, color: '#A6A199' }}>No orders yet</div>
+              : topProducts.map(p => (
               <div key={p.name} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 44, height: 52, borderRadius: 6, flexShrink: 0, background: HATCH }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
                   <div style={{ fontSize: 12, color: '#A6A199' }}>{p.sold} sold</div>
                 </div>
-                <div style={{ fontSize: 13, fontWeight: 700 }}>{money(p.price)}</div>
+                <div style={{ fontSize: 13, fontWeight: 700 }}>{money(p.revenue)}</div>
               </div>
             ))}
           </div>
@@ -438,13 +430,13 @@ function DashboardScreen({ orders, setScreen }: { orders: Order[]; setScreen: (s
       <div style={{ background: '#fff', border: '1px solid #E7E4DE', borderRadius: 12, padding: 24, marginTop: 20 }}>
         <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 20 }}>Revenue Trend — Last 12 Weeks</div>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, height: 160 }}>
-          {revBars.map((v, i) => (
+          {weeklyRev.map((v, i) => (
             <div
               key={i}
-              style={{ flex: 1, height: v, background: '#181715', borderRadius: '4px 4px 0 0', transition: 'background 0.15s', cursor: 'default' }}
-              title={`Week ${i + 1}: ${money(revByWeek[i])}`}
-              onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = '#96733A'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = '#181715'; }}
+              style={{ flex: 1, height: Math.max((v / maxBar) * 140, v > 0 ? 4 : 2), background: v > 0 ? '#181715' : '#EFEDE8', borderRadius: '4px 4px 0 0', transition: 'background 0.15s', cursor: 'default' }}
+              title={`Week ${i + 1}: ${money(v)}`}
+              onMouseEnter={e => { if (v > 0) (e.currentTarget as HTMLDivElement).style.background = '#96733A'; }}
+              onMouseLeave={e => { if (v > 0) (e.currentTarget as HTMLDivElement).style.background = '#181715'; }}
             />
           ))}
         </div>
@@ -538,10 +530,10 @@ function ProductsScreen({ productView, setProductView, productImages, setProduct
   productImages: Record<string, string[]>;
   setProductImages: (id: string, images: string[]) => void;
 }) {
-  const [editingId, setEditingId]       = useState<string | null>(null);
-  const [draftImages, setDraftImages]   = useState<(string | null)[]>([null, null, null]);
-  const [uploading, setUploading]       = useState<boolean[]>([false, false, false]);
-  const [saving, setSaving]             = useState(false);
+  const [editingId, setEditingId]     = useState<string | null>(null);
+  const [draftImages, setDraftImages] = useState<(string | null)[]>([null, null, null]);
+  const [uploading, setUploading]     = useState<boolean[]>([false, false, false]);
+  const [saving, setSaving]           = useState(false);
 
   const editingProduct = STOREFRONT_PRODUCTS.find(p => p.id === editingId);
 
@@ -561,8 +553,8 @@ function ProductsScreen({ productView, setProductView, productImages, setProduct
     setDraftImages(prev => { const next = [...prev]; next[slot] = localUrl; return next; });
     setUploading(prev => { const next = [...prev]; next[slot] = true; return next; });
 
-    // Upload to Supabase Storage via API
     const ext  = file.name.split('.').pop();
+    // eslint-disable-next-line react-hooks/purity
     const path = `products/${editingId}/slot${slot}-${Date.now()}.${ext}`;
     const form = new FormData();
     form.append('file', file);
@@ -575,8 +567,6 @@ function ProductsScreen({ productView, setProductView, productImages, setProduct
     if (json.url) {
       setDraftImages(prev => { const next = [...prev]; next[slot] = json.url; return next; });
     } else {
-      console.error('Upload failed:', json.error);
-      // revert preview on error
       setDraftImages(prev => { const next = [...prev]; next[slot] = null; return next; });
     }
   };
@@ -586,14 +576,14 @@ function ProductsScreen({ productView, setProductView, productImages, setProduct
     setSaving(true);
     const images = draftImages.filter(Boolean) as string[];
 
-    // Save URLs to Supabase products table
+    // Save URLs to Supabase products table via admin API
     await fetch(`/api/products/${editingId}/images`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ images }),
     });
 
-    // Update shared store so storefront shows new images instantly
+    // Update in-memory store so UI updates immediately
     setProductImages(editingId, images);
     setSaving(false);
     setEditingId(null);
@@ -683,24 +673,16 @@ function ProductsScreen({ productView, setProductView, productImages, setProduct
                 {draftImages[slot] && (
                   <img src={draftImages[slot]!} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
                 )}
-                {!draftImages[slot] && !uploading[slot] && (
+                {!draftImages[slot] && (
                   <span style={{ fontSize: 10, color: '#A6A199', pointerEvents: 'none' }}>No image</span>
                 )}
-                {uploading[slot] && (
-                  <div style={{ position: 'absolute', inset: 0, background: 'rgba(24,23,21,0.55)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 4, gap: 6 }}>
-                    <div style={{ width: 20, height: 20, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
-                    <span style={{ fontSize: 10, color: '#fff', fontWeight: 600 }}>Uploading…</span>
-                  </div>
-                )}
-                <label style={{ position: 'absolute', inset: 0, cursor: uploading[slot] ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 8, zIndex: 2 }}>
-                  {!uploading[slot] && (
-                    <span style={{ background: 'rgba(24,23,21,0.72)', color: '#fff', fontSize: 11, fontWeight: 600, padding: '4px 12px', borderRadius: 6 }}>
-                      {draftImages[slot] ? 'Replace' : 'Upload'}
-                    </span>
-                  )}
-                  <input type="file" accept="image/*" style={{ display: 'none' }} disabled={uploading[slot]} onChange={e => handleFile(slot, e)} />
+                <label style={{ position: 'absolute', inset: 0, cursor: 'pointer', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 8, zIndex: 2 }}>
+                  <span style={{ background: 'rgba(24,23,21,0.72)', color: '#fff', fontSize: 11, fontWeight: 600, padding: '4px 12px', borderRadius: 6 }}>
+                    {draftImages[slot] ? 'Replace' : 'Upload'}
+                  </span>
+                  <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleFile(slot, e)} />
                 </label>
-                {draftImages[slot] && !uploading[slot] && (
+                {draftImages[slot] && (
                   <button
                     onClick={() => setDraftImages(prev => { const n = [...prev]; n[slot] = null; return n; })}
                     style={{ position: 'absolute', top: 6, right: 6, width: 22, height: 22, borderRadius: '50%', background: 'rgba(24,23,21,0.72)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 14, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3 }}
@@ -713,9 +695,8 @@ function ProductsScreen({ productView, setProductView, productImages, setProduct
           <button
             onClick={handleSave}
             disabled={saving || uploading.some(Boolean)}
-            style={{ width: '100%', background: saving || uploading.some(Boolean) ? '#7C7870' : '#181715', color: '#fff', border: 'none', borderRadius: 8, padding: '11px 0', fontSize: 13, fontWeight: 700, cursor: saving || uploading.some(Boolean) ? 'not-allowed' : 'pointer', marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+            style={{ width: '100%', background: '#181715', color: '#fff', border: 'none', borderRadius: 8, padding: '11px 0', fontSize: 13, fontWeight: 700, cursor: saving || uploading.some(Boolean) ? 'not-allowed' : 'pointer', opacity: saving || uploading.some(Boolean) ? 0.6 : 1, marginTop: 4 }}
           >
-            {saving && <div style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />}
             {saving ? 'Saving…' : uploading.some(Boolean) ? 'Uploading…' : 'Save Images'}
           </button>
           <button onClick={() => setEditingId(null)} style={{ width: '100%', background: 'transparent', color: '#7C7870', border: '1px solid #E7E4DE', borderRadius: 8, padding: '9px 0', fontSize: 13, fontWeight: 600, cursor: 'pointer', marginTop: 8 }}>
@@ -730,56 +711,46 @@ function ProductsScreen({ productView, setProductView, productImages, setProduct
 /* ─── Inventory ──────────────────────────────────────────────────────────────── */
 
 function InventoryScreen({ search }: { search: string }) {
-  const [dbInventory, setDbInventory] = useState<InventoryRow[]>([]);
+  const [rows, setRows] = useState<{ id: string; sku: string; product: string; variant: string; stock: number; reorder_at: number }[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch('/api/inventory')
       .then(r => r.json())
-      .then((data: any[]) => {
+      .then((data: { id: string; sku: string; products: { name: string }; variant: string; stock: number; reorder_at: number }[]) => {
         if (Array.isArray(data)) {
-          setDbInventory(data.map(r => ({
-            sku:       r.sku,
-            product:   r.products?.name ?? r.product_id,
-            variant:   r.variant,
-            stock:     r.stock,
-            reorderAt: r.reorder_at,
-          })));
+          setRows(data.map(r => ({ id: r.id, sku: r.sku, product: r.products?.name ?? '', variant: r.variant, stock: r.stock, reorder_at: r.reorder_at })));
         }
       })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
 
-  const source = dbInventory.length > 0 ? dbInventory : INVENTORY;
   const q = search.toLowerCase();
-  const rows = q
-    ? source.filter(r => r.sku.toLowerCase().includes(q) || r.product.toLowerCase().includes(q) || r.variant.toLowerCase().includes(q))
-    : source;
+  const filtered = q
+    ? rows.filter(r => r.sku.toLowerCase().includes(q) || r.product.toLowerCase().includes(q) || r.variant.toLowerCase().includes(q))
+    : rows;
 
   return (
     <div>
       <div style={{ background: '#fff', border: '1px solid #E7E4DE', borderRadius: 12, overflowX: 'auto' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '110px 1.6fr 1fr 90px 100px 110px', minWidth: 880, padding: '14px 20px', fontSize: 11, fontWeight: 700, color: '#A6A199', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid #EFEDE8' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '140px 1.6fr 1fr 90px 100px 110px', minWidth: 880, padding: '14px 20px', fontSize: 11, fontWeight: 700, color: '#A6A199', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid #EFEDE8' }}>
           {['SKU', 'Product', 'Variant', 'Stock', 'Reorder At', 'Status'].map(h => <div key={h}>{h}</div>)}
         </div>
         {loading ? (
-          <div style={{ padding: '24px 20px', display: 'flex', alignItems: 'center', gap: 10, color: '#A6A199', fontSize: 13 }}>
-            <div style={{ width: 16, height: 16, border: '2px solid #E7E4DE', borderTopColor: '#7C7870', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
-            Loading inventory…
-          </div>
-        ) : rows.length === 0 ? (
-          <div style={{ padding: '24px 20px', fontSize: 13, color: '#A6A199' }}>No results for "{search}"</div>
-        ) : rows.map(row => {
-          const status = row.stock === 0 ? 'Out of stock' : row.stock <= row.reorderAt ? 'Low' : 'Healthy';
+          <div style={{ padding: '24px 20px', fontSize: 13, color: '#A6A199' }}>Loading…</div>
+        ) : filtered.length === 0 ? (
+          <div style={{ padding: '24px 20px', fontSize: 13, color: '#A6A199' }}>{q ? `No results for "${search}"` : 'No inventory data.'}</div>
+        ) : filtered.map(row => {
+          const status = row.stock === 0 ? 'Out of stock' : row.stock <= row.reorder_at ? 'Low' : 'Healthy';
           return (
-            <div key={row.sku} style={{ display: 'grid', gridTemplateColumns: '110px 1.6fr 1fr 90px 100px 110px', minWidth: 880, padding: '14px 20px', alignItems: 'center', borderBottom: '1px solid #EFEDE8', fontSize: 13 }}>
+            <div key={row.id} style={{ display: 'grid', gridTemplateColumns: '140px 1.6fr 1fr 90px 100px 110px', minWidth: 880, padding: '14px 20px', alignItems: 'center', borderBottom: '1px solid #EFEDE8', fontSize: 13 }}>
               <div style={{ color: '#7C7870', fontFamily: 'monospace', fontSize: 12 }}>{row.sku}</div>
               <div style={{ fontWeight: 600 }}>{row.product}</div>
               <div style={{ color: '#7C7870' }}>{row.variant}</div>
               <div style={{ fontWeight: 700 }}>{row.stock}</div>
-              <div style={{ color: '#A6A199' }}>{row.reorderAt}</div>
-              <span style={badgeSty(row.stock === 0 ? 'Cancelled' : row.stock <= row.reorderAt ? 'Pending' : 'Delivered')}>{status}</span>
+              <div style={{ color: '#A6A199' }}>{row.reorder_at}</div>
+              <span style={badgeSty(row.stock === 0 ? 'Cancelled' : row.stock <= row.reorder_at ? 'Pending' : 'Delivered')}>{status}</span>
             </div>
           );
         })}
@@ -796,39 +767,32 @@ function CollectionsScreen({ collections, collectionBanners, setCollectionBanner
   setCollectionBanner: (name: string, image: string) => void;
   toggleCollection: (name: string) => void;
 }) {
-  const [uploading, setUploading] = useState<Record<string, boolean>>({});
-
   const handleFile = async (name: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Instant local preview
+    // Show local preview instantly
     const localUrl = URL.createObjectURL(file);
     setCollectionBanner(name, localUrl);
-    setUploading(prev => ({ ...prev, [name]: true }));
 
-    const collection = collections.find(c => c.name === name);
-    const ext = file.name.split('.').pop();
-    const path = `collections/${name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.${ext}`;
-
+    // Upload to Supabase Storage
+    const ext  = file.name.split('.').pop();
+    // eslint-disable-next-line react-hooks/purity
+    const path = `collections/${name.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}.${ext}`;
     const form = new FormData();
     form.append('file', file);
-    const res = await fetch(`/api/upload?bucket=product-images&path=${path}`, { method: 'POST', body: form });
+
+    const res  = await fetch(`/api/upload?bucket=product-images&path=${path}`, { method: 'POST', body: form });
     const json = await res.json();
 
-    setUploading(prev => ({ ...prev, [name]: false }));
-
     if (json.url) {
+      // Save URL to Supabase collections table
+      await fetch('/api/collections', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, banner_url: json.url }),
+      });
       setCollectionBanner(name, json.url);
-      if (collection?.id) {
-        fetch(`/api/collections/${collection.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ banner_url: json.url }),
-        }).catch(console.error);
-      }
-    } else {
-      setCollectionBanner(name, '');
     }
   };
 
@@ -842,23 +806,15 @@ function CollectionsScreen({ collections, collectionBanners, setCollectionBanner
             <div style={{ height: 160, position: 'relative', background: HATCH, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
               {banner
                 ? <img src={banner} alt={c.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-                : !uploading[c.name] && <span style={{ fontSize: 10, fontFamily: 'monospace', color: '#A6A199', letterSpacing: '0.04em' }}>NO BANNER</span>
+                : <span style={{ fontSize: 10, fontFamily: 'monospace', color: '#A6A199', letterSpacing: '0.04em' }}>NO BANNER</span>
               }
-              {uploading[c.name] && (
-                <div style={{ position: 'absolute', inset: 0, background: 'rgba(24,23,21,0.55)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 4, gap: 8 }}>
-                  <div style={{ width: 22, height: 22, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
-                  <span style={{ fontSize: 11, color: '#fff', fontWeight: 600 }}>Uploading…</span>
-                </div>
-              )}
-              <label style={{ position: 'absolute', inset: 0, cursor: uploading[c.name] ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 10, zIndex: 2 }}>
-                {!uploading[c.name] && (
-                  <span style={{ background: 'rgba(24,23,21,0.72)', color: '#fff', fontSize: 11, fontWeight: 600, padding: '5px 14px', borderRadius: 6 }}>
-                    {banner ? 'Replace Banner' : 'Upload Banner'}
-                  </span>
-                )}
-                <input type="file" accept="image/*" style={{ display: 'none' }} disabled={uploading[c.name]} onChange={e => handleFile(c.name, e)} />
+              <label style={{ position: 'absolute', inset: 0, cursor: 'pointer', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 10, zIndex: 2 }}>
+                <span style={{ background: 'rgba(24,23,21,0.72)', color: '#fff', fontSize: 11, fontWeight: 600, padding: '5px 14px', borderRadius: 6 }}>
+                  {banner ? 'Replace Banner' : 'Upload Banner'}
+                </span>
+                <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleFile(c.name, e)} />
               </label>
-              {banner && !uploading[c.name] && (
+              {banner && (
                 <button
                   onClick={() => setCollectionBanner(c.name, '')}
                   style={{ position: 'absolute', top: 8, right: 8, width: 24, height: 24, borderRadius: '50%', background: 'rgba(24,23,21,0.72)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 15, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3 }}
@@ -895,22 +851,40 @@ function CollectionsScreen({ collections, collectionBanners, setCollectionBanner
 
 /* ─── Customers ──────────────────────────────────────────────────────────────── */
 
-function CustomersScreen() {
+function CustomersScreen({ orders }: { orders: Order[] }) {
+  // Build customer list from real orders grouped by email
+  const customerMap: Record<string, { name: string; email: string; orders: number; ltv: number; lastOrder: string }> = {};
+  orders.forEach(o => {
+    if (!o.email) return;
+    if (!customerMap[o.email]) {
+      customerMap[o.email] = { name: o.customer, email: o.email, orders: 0, ltv: 0, lastOrder: o.date };
+    }
+    customerMap[o.email].orders += 1;
+    if (o.status !== 'Cancelled') customerMap[o.email].ltv += o.total;
+    // Keep most recent order date
+    if (new Date(o.date) > new Date(customerMap[o.email].lastOrder)) {
+      customerMap[o.email].lastOrder = o.date;
+    }
+  });
+
+  const customers = Object.values(customerMap).sort((a, b) => b.ltv - a.ltv);
+
   return (
     <div style={{ background: '#fff', border: '1px solid #E7E4DE', borderRadius: 12, overflowX: 'auto' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 80px 110px 100px 90px', minWidth: 900, padding: '14px 20px', fontSize: 11, fontWeight: 700, color: '#A6A199', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid #EFEDE8' }}>
-        {['Customer', 'Location', 'Orders', 'Lifetime Value', 'Last Order', 'Tier'].map(h => <div key={h}>{h}</div>)}
+      <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 80px 140px 130px 90px', minWidth: 800, padding: '14px 20px', fontSize: 11, fontWeight: 700, color: '#A6A199', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid #EFEDE8' }}>
+        {['Customer', 'Orders', 'Lifetime Value', 'Last Order', 'Tier'].map(h => <div key={h}>{h}</div>)}
       </div>
-      {CUSTOMERS.map(c => {
+      {customers.length === 0 ? (
+        <div style={{ padding: '24px 20px', fontSize: 13, color: '#A6A199' }}>No customers yet.</div>
+      ) : customers.map(c => {
         const tier = c.ltv > 5000 ? 'VIP' : c.ltv > 1500 ? 'Regular' : 'New';
         const tierSty: React.CSSProperties = { display: 'inline-block', fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 6, background: tier === 'VIP' ? '#FBF0DE' : tier === 'Regular' ? '#EAEEF7' : '#EFEDE8', color: tier === 'VIP' ? '#96631B' : tier === 'Regular' ? '#37518F' : '#7C7870' };
         return (
-          <div key={c.email} style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 80px 110px 100px 90px', minWidth: 900, padding: '14px 20px', alignItems: 'center', borderBottom: '1px solid #EFEDE8', fontSize: 13 }}>
+          <div key={c.email} style={{ display: 'grid', gridTemplateColumns: '1.8fr 80px 140px 130px 90px', minWidth: 800, padding: '14px 20px', alignItems: 'center', borderBottom: '1px solid #EFEDE8', fontSize: 13 }}>
             <div>
               <div style={{ fontWeight: 600 }}>{c.name}</div>
               <div style={{ fontSize: 12, color: '#A6A199' }}>{c.email}</div>
             </div>
-            <div style={{ color: '#7C7870' }}>{c.location}</div>
             <div style={{ color: '#7C7870' }}>{c.orders}</div>
             <div style={{ fontWeight: 700 }}>{money(c.ltv)}</div>
             <div style={{ color: '#7C7870' }}>{c.lastOrder}</div>
@@ -925,89 +899,76 @@ function CustomersScreen() {
 /* ─── Analytics ──────────────────────────────────────────────────────────────── */
 
 function AnalyticsScreen({ orders }: { orders: Order[] }) {
-  const now    = new Date();
+  // Revenue by week (last 8 weeks)
+  const now = Date.now();
   const weekMs = 7 * 24 * 60 * 60 * 1000;
-  const active = orders.filter(o => o.status !== 'Cancelled');
-
-  // Revenue per week — last 12 weeks
-  const revByWeek = Array.from({ length: 12 }, (_, i) => {
-    const wStart = new Date(now.getTime() - (11 - i) * weekMs);
-    const wEnd   = new Date(now.getTime() - (10 - i) * weekMs);
-    return active.filter(o => {
-      const d = new Date(o.createdAt);
-      return d >= wStart && d < wEnd;
-    }).reduce((n, o) => n + o.total, 0);
+  const weeklyRevenue = Array.from({ length: 8 }, (_, i) => {
+    const weekStart = now - (7 - i) * weekMs;
+    const weekEnd   = weekStart + weekMs;
+    return orders
+      .filter(o => { const t = new Date(o.date).getTime(); return o.status !== 'Cancelled' && t >= weekStart && t < weekEnd; })
+      .reduce((s, o) => s + o.total, 0);
   });
+  const maxRev = Math.max(...weeklyRevenue, 1);
 
-  // Orders per day — last 30 days
-  const ordersByDay = Array.from({ length: 30 }, (_, i) => {
-    const dayStart = new Date(now.getTime() - (29 - i) * 86400000);
-    dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(dayStart.getTime() + 86400000);
-    return active.filter(o => {
-      const d = new Date(o.createdAt);
-      return d >= dayStart && d < dayEnd;
-    }).length;
-  });
+  const activeOrders = orders.filter(o => o.status !== 'Cancelled');
+  const totalRevenue = activeOrders.reduce((s, o) => s + o.total, 0);
+  const totalOrders  = activeOrders.length;
 
-  // Sales by category
-  const catRev: Record<string, number> = {};
-  active.forEach(o => o.items.forEach(item => {
-    const cat = STOREFRONT_PRODUCTS.find(p => p.name === item.name)?.category ?? 'Other';
-    catRev[cat] = (catRev[cat] ?? 0) + item.price * item.qty;
+  // Sales by category from order items
+  const catRevMap: Record<string, number> = {};
+  activeOrders.forEach(o => o.items.forEach(item => {
+    const p = STOREFRONT_PRODUCTS.find(sp => sp.name === item.name);
+    const cat = p?.category ?? 'Other';
+    catRevMap[cat] = (catRevMap[cat] ?? 0) + item.price * item.qty;
   }));
-  const totalCatRev = Object.values(catRev).reduce((n, v) => n + v, 0) || 1;
-  const categorySplits = Object.entries(catRev)
-    .map(([name, rev]) => ({ name, pct: Math.round((rev / totalCatRev) * 100), rev }))
+  const totalCatRev = Object.values(catRevMap).reduce((a, b) => a + b, 0) || 1;
+  const categorySplits = Object.entries(catRevMap)
+    .map(([name, rev]) => ({ name, pct: Math.round((rev / totalCatRev) * 100) }))
     .sort((a, b) => b.pct - a.pct);
 
   // Top products by revenue
-  const prodRev: Record<string, { sold: number; revenue: number }> = {};
-  active.forEach(o => o.items.forEach(item => {
-    if (!prodRev[item.name]) prodRev[item.name] = { sold: 0, revenue: 0 };
-    prodRev[item.name].sold    += item.qty;
-    prodRev[item.name].revenue += item.price * item.qty;
+  const productRevMap: Record<string, { sold: number; revenue: number }> = {};
+  activeOrders.forEach(o => o.items.forEach(item => {
+    if (!productRevMap[item.name]) productRevMap[item.name] = { sold: 0, revenue: 0 };
+    productRevMap[item.name].sold    += item.qty;
+    productRevMap[item.name].revenue += item.price * item.qty;
   }));
-  const topProducts = Object.entries(prodRev)
+  const topProducts = Object.entries(productRevMap)
     .map(([name, d]) => ({ name, ...d }))
     .sort((a, b) => b.revenue - a.revenue)
     .slice(0, 5);
 
-  // SVG area chart helper
-  const svgPoints = (data: number[], w: number, h: number, pad: number) => {
-    const maxV = Math.max(...data, 1);
-    const pts  = data.map((v, i) => {
-      const x = pad + (i / (data.length - 1)) * (w - pad * 2);
-      const y = pad + (1 - v / maxV) * (h - pad * 2);
-      return `${x},${y}`;
-    });
-    const first = pts[0].split(',');
-    const last  = pts[pts.length - 1].split(',');
-    return {
-      line: pts.join(' '),
-      area: `${pts.join(' ')} ${last[0]},${h - pad} ${first[0]},${h - pad}`,
-    };
-  };
-
-  const W = 560, H = 160, PAD = 20;
-  const revChart  = svgPoints(revByWeek,  W, H, PAD);
-  const dayChart  = svgPoints(ordersByDay, W, H, PAD);
-  const maxOrders = Math.max(...ordersByDay, 1);
-
-  const weekLabel = (i: number) => {
-    const d = new Date(now.getTime() - (11 - i) * weekMs);
-    return `${d.toLocaleString('default', { month: 'short' })} ${d.getDate()}`;
-  };
+  const W = 560, H = 160, PAD = 24;
+  const points = weeklyRevenue.map((v, i) => {
+    const x = PAD + (i / 7) * (W - PAD * 2);
+    const y = H - PAD - (v / maxRev) * (H - PAD * 2);
+    return `${x},${y}`;
+  }).join(' ');
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* Revenue trend */}
-      <div style={{ background: '#fff', border: '1px solid #E7E4DE', borderRadius: 12, padding: 24 }}>
-        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 20 }}>Revenue — Last 12 Weeks</div>
-        {active.length === 0 ? (
-          <div style={{ height: H, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#A6A199', fontSize: 13 }}>No order data yet</div>
-        ) : (
-          <>
+      {/* KPI row */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16 }}>
+        {[
+          { label: 'Total Revenue',  value: money(totalRevenue) },
+          { label: 'Total Orders',   value: totalOrders },
+          { label: 'Avg Order Value', value: totalOrders ? money(Math.round(totalRevenue / totalOrders)) : 'Rs. 0.00' },
+        ].map(k => (
+          <div key={k.label} style={{ background: '#fff', border: '1px solid #E7E4DE', borderRadius: 12, padding: 20 }}>
+            <div style={{ fontSize: 12, color: '#A6A199', fontWeight: 600, marginBottom: 8 }}>{k.label}</div>
+            <div style={{ fontSize: 22, fontWeight: 800 }}>{k.value}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 20 }}>
+        {/* Revenue chart */}
+        <div style={{ background: '#fff', border: '1px solid #E7E4DE', borderRadius: 12, padding: 24 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 20 }}>Revenue — Last 8 Weeks</div>
+          {totalOrders === 0 ? (
+            <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#A6A199', fontSize: 13 }}>No order data yet</div>
+          ) : (
             <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: H }}>
               <defs>
                 <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
@@ -1015,52 +976,12 @@ function AnalyticsScreen({ orders }: { orders: Order[] }) {
                   <stop offset="100%" stopColor="#181715" stopOpacity="0" />
                 </linearGradient>
               </defs>
-              {/* Gridlines */}
-              {[0.25, 0.5, 0.75, 1].map(v => (
-                <line key={v} x1={PAD} y1={PAD + (1 - v) * (H - PAD * 2)} x2={W - PAD} y2={PAD + (1 - v) * (H - PAD * 2)}
-                  stroke="#F1EFEA" strokeWidth={1} />
-              ))}
-              <polygon points={revChart.area} fill="url(#revGrad)" />
-              <polyline points={revChart.line} fill="none" stroke="#181715" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
-              {/* Dots */}
-              {revByWeek.map((v, i) => {
-                const maxV = Math.max(...revByWeek, 1);
-                const x = PAD + (i / 11) * (W - PAD * 2);
-                const y = PAD + (1 - v / maxV) * (H - PAD * 2);
-                return <circle key={i} cx={x} cy={y} r={3} fill="#181715"><title>{`${weekLabel(i)}: ${money(v)}`}</title></circle>;
-              })}
-            </svg>
-            {/* X labels — every 3 weeks */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 11, color: '#A6A199', padding: `0 ${PAD}px` }}>
-              {[0, 3, 6, 9, 11].map(i => (
-                <span key={i}>{weekLabel(i)}</span>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 20 }}>
-        {/* Orders per day */}
-        <div style={{ background: '#fff', border: '1px solid #E7E4DE', borderRadius: 12, padding: 24 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 20 }}>Orders — Last 30 Days</div>
-          {active.length === 0 ? (
-            <div style={{ height: H, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#A6A199', fontSize: 13 }}>No order data yet</div>
-          ) : (
-            <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: H }}>
-              {ordersByDay.map((v, i) => {
-                const barW  = (W - PAD * 2) / 30 - 2;
-                const barH  = (v / maxOrders) * (H - PAD * 2);
-                const x     = PAD + i * ((W - PAD * 2) / 30);
-                const y     = H - PAD - barH;
-                const d     = new Date(now.getTime() - (29 - i) * 86400000);
-                const label = `${d.toLocaleString('default', { month: 'short' })} ${d.getDate()}: ${v} order${v !== 1 ? 's' : ''}`;
-                return (
-                  <rect key={i} x={x} y={Math.max(y, PAD)} width={barW} height={Math.max(barH, v > 0 ? 3 : 0)}
-                    fill="#181715" rx={2} opacity={0.85}>
-                    <title>{label}</title>
-                  </rect>
-                );
+              <polygon points={`${PAD},${H - PAD} ${points} ${W - PAD},${H - PAD}`} fill="url(#revGrad)" />
+              <polyline points={points} fill="none" stroke="#181715" strokeWidth={2.5} strokeLinejoin="round" />
+              {weeklyRevenue.map((v, i) => {
+                const x = PAD + (i / 7) * (W - PAD * 2);
+                const y = H - PAD - (v / maxRev) * (H - PAD * 2);
+                return <circle key={i} cx={x} cy={y} r={4} fill="#fff" stroke="#181715" strokeWidth={2} />;
               })}
             </svg>
           )}
@@ -1070,7 +991,7 @@ function AnalyticsScreen({ orders }: { orders: Order[] }) {
         <div style={{ background: '#fff', border: '1px solid #E7E4DE', borderRadius: 12, padding: 24 }}>
           <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>Sales by Category</div>
           {categorySplits.length === 0 ? (
-            <div style={{ color: '#A6A199', fontSize: 13, marginTop: 40, textAlign: 'center' }}>No sales data yet</div>
+            <div style={{ color: '#A6A199', fontSize: 13 }}>No data yet</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {categorySplits.map(s => (
@@ -1092,18 +1013,22 @@ function AnalyticsScreen({ orders }: { orders: Order[] }) {
       {/* Top products */}
       <div style={{ background: '#fff', border: '1px solid #E7E4DE', borderRadius: 12, padding: 24 }}>
         <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>Top Products by Revenue</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr', padding: '10px 0', fontSize: 11, fontWeight: 700, color: '#A6A199', textTransform: 'uppercase' as const, letterSpacing: '0.06em', borderBottom: '1px solid #EFEDE8' }}>
-          {['Product', 'Units Sold', 'Revenue'].map(h => <div key={h}>{h}</div>)}
-        </div>
         {topProducts.length === 0 ? (
-          <div style={{ color: '#A6A199', fontSize: 13, padding: '24px 0', textAlign: 'center' }}>No sales data yet</div>
-        ) : topProducts.map(p => (
-          <div key={p.name} style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr', padding: '12px 0', fontSize: 13, borderBottom: '1px solid #EFEDE8', alignItems: 'center' }}>
-            <div style={{ fontWeight: 600 }}>{p.name}</div>
-            <div style={{ color: '#7C7870' }}>{p.sold}</div>
-            <div style={{ fontWeight: 700 }}>{money(p.revenue)}</div>
-          </div>
-        ))}
+          <div style={{ color: '#A6A199', fontSize: 13 }}>No data yet</div>
+        ) : (
+          <>
+            <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr', padding: '10px 0', fontSize: 11, fontWeight: 700, color: '#A6A199', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid #EFEDE8' }}>
+              {['Product', 'Units Sold', 'Revenue'].map(h => <div key={h}>{h}</div>)}
+            </div>
+            {topProducts.map(p => (
+              <div key={p.name} style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr', padding: '12px 0', fontSize: 13, borderBottom: '1px solid #EFEDE8', alignItems: 'center' }}>
+                <div style={{ fontWeight: 600 }}>{p.name}</div>
+                <div style={{ color: '#7C7870' }}>{p.sold}</div>
+                <div style={{ fontWeight: 700 }}>{money(p.revenue)}</div>
+              </div>
+            ))}
+          </>
+        )}
       </div>
     </div>
   );
@@ -1144,7 +1069,7 @@ function SettingsScreen({ notifPrefs, toggleNotif }: {
           return (
             <div key={n.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #EFEDE8' }}>
               <div style={{ fontSize: 13, fontWeight: 600 }}>{n.label}</div>
-              <button onClick={() => toggleNotif(n.key)} style={{ width: 40, height: 22, borderRadius: 11, background: on ? '#181715' : '#B0ADAA', position: 'relative', cursor: 'pointer', border: 'none', padding: 0, flexShrink: 0, transition: 'background 0.15s' }}>
+              <button onClick={() => toggleNotif(n.key)} style={{ width: 40, height: 22, borderRadius: 11, background: on ? '#181715' : '#E7E4DE', position: 'relative', cursor: 'pointer', border: 'none', padding: 0, flexShrink: 0 }}>
                 <span style={{ width: 16, height: 16, borderRadius: '50%', background: '#fff', position: 'absolute', top: 3, left: on ? 21 : 3, transition: 'left 0.15s', display: 'block' }} />
               </button>
             </div>
@@ -1173,9 +1098,10 @@ function SettingsScreen({ notifPrefs, toggleNotif }: {
 
 /* ─── Order Detail Panel ─────────────────────────────────────────────────────── */
 
-function OrderPanel({ order, statusOverrides, updateStatus, onClose }: {
+function OrderPanel({ order, statusOverrides, updateStatus, onClose, productImages }: {
   order: Order; statusOverrides: Record<string, OrderStatus>;
   updateStatus: (id: string, s: OrderStatus) => void; onClose: () => void;
+  productImages: Record<string, string[]>;
 }) {
   const [showRefundConfirm, setShowRefundConfirm] = useState(false);
   const currentStatus = statusOverrides[order.id] || order.status;
@@ -1268,16 +1194,22 @@ function OrderPanel({ order, statusOverrides, updateStatus, onClose }: {
 
           <div style={{ fontSize: 12, fontWeight: 700, color: '#A6A199', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Items</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20 }}>
-            {order.items.map((item, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 48, height: 56, borderRadius: 6, flexShrink: 0, background: HATCH }} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600 }}>{item.name}</div>
-                  <div style={{ fontSize: 12, color: '#A6A199' }}>{item.variant} · Qty {item.qty}</div>
+            {order.items.map((item, i) => {
+              const product = STOREFRONT_PRODUCTS.find(p => p.name === item.name);
+              const img = product ? productImages[product.id]?.[0] : undefined;
+              return (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 48, height: 56, borderRadius: 6, flexShrink: 0, background: HATCH, overflow: 'hidden', position: 'relative' }}>
+                    {img && <img src={img} alt={item.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600 }}>{item.name}</div>
+                    <div style={{ fontSize: 12, color: '#A6A199' }}>{item.variant} · Qty {item.qty}</div>
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 700 }}>{money(item.price * item.qty)}</div>
                 </div>
-                <div style={{ fontSize: 13, fontWeight: 700 }}>{money(item.price * item.qty)}</div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div style={{ borderTop: '1px solid #EFEDE8', paddingTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -1324,36 +1256,16 @@ function OrderPanel({ order, statusOverrides, updateStatus, onClose }: {
 /* ─── Page ───────────────────────────────────────────────────────────────────── */
 
 export default function AdminPage() {
-  const [authed, setAuthed]     = useState(false);
-  const [checking, setChecking] = useState(true);
+  const [authed, setAuthed] = useState(false);
 
   useEffect(() => {
-    // Check existing session on mount
-    supabase.auth.getSession().then(({ data }) => {
-      setAuthed(!!data.session);
-      setChecking(false);
-    });
-
-    // Listen for auth state changes (login / logout / token refresh)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setAuthed(!!session);
-    });
-
-    return () => subscription.unsubscribe();
+    if (localStorage.getItem(AUTH_KEY) === '1') setAuthed(true);
   }, []);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
+  const handleLogout = () => {
+    localStorage.removeItem(AUTH_KEY);
     setAuthed(false);
   };
-
-  if (checking) {
-    return (
-      <div style={{ minHeight: '100vh', background: '#F7F5F2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ width: 28, height: 28, border: '2px solid #E7E4DE', borderTopColor: '#181715', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
-      </div>
-    );
-  }
 
   if (!authed) return <LoginScreen onLogin={() => setAuthed(true)} />;
   return <AdminDashboard onLogout={handleLogout} />;
@@ -1366,118 +1278,101 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [orderFilter, setOrderFilter] = useState('All');
   const [productView, setProductView] = useState<'grid' | 'list'>('grid');
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [statusOverrides, setStatusOverrides] = useState<Record<string, OrderStatus>>({});
   const [notifPrefs, setNotifPrefs] = useState<Record<string, boolean>>({ order: true, stock: true, marketing: false });
   const [collections, setCollections] = useState<Collection[]>(BASE_COLLECTIONS);
+  const [apiOrders, setApiOrders]       = useState<Order[]>([]);
+  const [inventoryRows, setInventoryRows] = useState<{ sku: string; product: string; stock: number; reorder_at: number }[]>([]);
+  const toggleCollection = (name: string) =>
+    setCollections(prev => prev.map(c => c.name === name ? { ...c, active: !c.active } : c));
 
-  // Real orders from Supabase via API
-  const [dbOrders, setDbOrders] = useState<Order[]>([]);
-  const [ordersLoading, setOrdersLoading] = useState(true);
+  const productImages        = useSharedStore(s => s.productImages);
+  const setProductImages     = useSharedStore(s => s.setProductImages);
+  const collectionBanners    = useSharedStore(s => s.collectionBanners);
+  const setCollectionBanner  = useSharedStore(s => s.setCollectionBanner);
 
-  const fetchOrders = () => {
+  // Fetch real data from API on mount
+  useEffect(() => {
+    // Load product images from Supabase
+    fetch('/api/products')
+      .then(r => r.json())
+      .then((data: { id: string; images: string[] | null }[]) => {
+        if (Array.isArray(data)) {
+          data.forEach(p => { if (p.images?.length) setProductImages(p.id, p.images); });
+        }
+      })
+      .catch(console.error);
+
+    // Load real orders from Supabase
     fetch('/api/orders')
       .then(r => r.json())
-      .then(data => {
+      .then((data: { id: string; customer: string; email: string; address: string; payment: string; status: string; shipping: number; tax: number; subtotal: number; total: number; created_at: string; order_items: { product_name: string; qty: number; size: string; price: number }[] }[]) => {
         if (Array.isArray(data)) {
-          setDbOrders(data.map((o: any) => ({
-            id:        o.id,
-            customer:  o.customer,
-            email:     o.email,
-            date:      new Date(o.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-            createdAt: o.created_at,
-            address:   o.address,
-            items:     (o.order_items ?? []).map((i: any) => ({ name: i.product_name, variant: i.size, qty: i.qty, price: i.price })),
-            payment:   o.payment,
-            status:    o.status,
-            shipping:  o.shipping,
-            tax:       o.tax,
-            itemCount: (o.order_items ?? []).reduce((n: number, i: any) => n + i.qty, 0),
-            subtotal:  o.subtotal,
-            total:     o.total,
-          })));
+          const mapped: Order[] = data.map(o => ({
+            id: o.id,
+            customer: o.customer,
+            email: o.email,
+            date: new Date(o.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            address: o.address,
+            items: (o.order_items ?? []).map(i => ({ name: i.product_name, variant: i.size, qty: i.qty, price: i.price })),
+            payment: o.payment,
+            status: o.status as OrderStatus,
+            shipping: o.shipping,
+            tax: o.tax,
+            itemCount: (o.order_items ?? []).reduce((n, i) => n + i.qty, 0),
+            subtotal: o.subtotal,
+            total: o.total,
+          }));
+          setApiOrders(mapped);
         }
       })
-      .catch(console.error)
-      .finally(() => setOrdersLoading(false));
-  };
-
-  useEffect(() => { fetchOrders(); }, []);
-
-  const productImages       = useSharedStore(s => s.productImages);
-  const setProductImages    = useSharedStore(s => s.setProductImages);
-  const collectionBanners   = useSharedStore(s => s.collectionBanners);
-  const setCollectionBanner = useSharedStore(s => s.setCollectionBanner);
-
-  // Fetch real collections from Supabase
-  useEffect(() => {
-    fetch('/api/collections')
-      .then(r => r.json())
-      .then((data: any[]) => {
-        if (!Array.isArray(data) || data.length === 0) return;
-        setCollections(data.map(c => ({
-          id:     c.id,
-          name:   c.name,
-          count:  c.product_count ?? 0,
-          active: c.active,
-        })));
-        // Seed banners from DB into shared store
-        data.forEach(c => {
-          if (c.banner_url) setCollectionBanner(c.name, c.banner_url);
-        });
-      })
       .catch(console.error);
-  }, []);
 
-  const toggleCollection = (name: string) => {
-    const col = collections.find(c => c.name === name);
-    const newActive = col ? !col.active : false;
-    setCollections(prev => prev.map(c => c.name === name ? { ...c, active: newActive } : c));
-    if (col?.id) {
-      fetch(`/api/collections/${col.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ active: newActive }),
-      }).catch(console.error);
-    }
-  };
-
-  // Merge real DB orders with demo orders (demo shown only if no real orders yet)
-  const allOrders: Order[] = dbOrders.length > 0
-    ? dbOrders
-    : ORDERS;
-
-  const [statusOverrides, setStatusOverrides] = useState<Record<string, OrderStatus>>({});
-  const dbIds = new Set(dbOrders.map(o => o.id));
-
-  const getStatus = (id: string, def: OrderStatus): OrderStatus =>
-    statusOverrides[id] || def;
-
-  const updateStatus = (id: string, status: OrderStatus) => {
-    setStatusOverrides(p => ({ ...p, [id]: status }));
-    if (dbIds.has(id)) {
-      fetch(`/api/orders/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
-      }).catch(console.error);
-    }
-  };
-
-  const pendingCount  = allOrders.filter(o => getStatus(o.id, o.status) === 'Pending').length;
-  const pendingOrders = allOrders.filter(o => getStatus(o.id, o.status) === 'Pending');
-  const [realInventory, setRealInventory] = useState<InventoryRow[]>([]);
-  useEffect(() => {
+    // Load inventory for low-stock alerts
     fetch('/api/inventory')
       .then(r => r.json())
-      .then((data: any[]) => {
-        if (Array.isArray(data) && data.length > 0) {
-          setRealInventory(data.map(r => ({ sku: r.sku, product: r.products?.name ?? r.product_id, variant: r.variant, stock: r.stock, reorderAt: r.reorder_at })));
+      .then((data: { sku: string; products: { name: string }; variant: string; stock: number; reorder_at: number }[]) => {
+        if (Array.isArray(data)) {
+          setInventoryRows(data.map(r => ({ sku: r.sku, product: r.products?.name ?? '', stock: r.stock, reorder_at: r.reorder_at })));
+        }
+      })
+      .catch(console.error);
+
+    // Load collection banners
+    fetch('/api/collections')
+      .then(r => r.json())
+      .then((data: { name: string; banner_url: string | null }[]) => {
+        if (Array.isArray(data)) {
+          data.forEach(c => { if (c.banner_url) setCollectionBanner(c.name, c.banner_url); });
         }
       })
       .catch(console.error);
   }, []);
-  const inventorySource = realInventory.length > 0 ? realInventory : INVENTORY;
-  const lowStockItems = inventorySource.filter(r => r.stock > 0 && r.stock <= r.reorderAt);
-  const selectedOrder = allOrders.find(o => o.id === selectedOrderId) ?? null;
+
+  // Real orders take priority; merge with demo data for any missing IDs
+  const apiIds = new Set(apiOrders.map(o => o.id));
+  const allOrders: Order[] = [...apiOrders, ...ORDERS.filter(o => !apiIds.has(o.id))];
+
+  const updateSharedStatus = useSharedStore(s => s.updateOrderStatus);
+
+  const getStatus = (id: string, def: OrderStatus): OrderStatus => {
+    if (apiIds.has(id)) return (apiOrders.find(o => o.id === id)?.status as OrderStatus) || def;
+    return statusOverrides[id] || def;
+  };
+  const updateStatus = (id: string, status: OrderStatus) => {
+    if (apiIds.has(id)) {
+      setApiOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
+      fetch(`/api/orders/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) }).catch(console.error);
+    } else {
+      setStatusOverrides(p => ({ ...p, [id]: status }));
+    }
+    updateSharedStatus(id, status);
+  };
+
+  const pendingCount   = allOrders.filter(o => getStatus(o.id, o.status) === 'Pending').length;
+  const pendingOrders  = allOrders.filter(o => getStatus(o.id, o.status) === 'Pending');
+  const lowStockItems = inventoryRows.filter(r => r.stock > 0 && r.stock <= r.reorder_at);
+  const selectedOrder  = allOrders.find(o => o.id === selectedOrderId) ?? null;
 
   return (
     <div style={{ display: 'flex', height: '100vh', background: '#F7F5F2', fontFamily: "'Inter', sans-serif", overflow: 'hidden' }}>
@@ -1491,14 +1386,14 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           {screen === 'products'    && <ProductsScreen productView={productView} setProductView={setProductView} productImages={productImages} setProductImages={setProductImages} />}
           {screen === 'inventory'   && <InventoryScreen search={search} />}
           {screen === 'collections' && <CollectionsScreen collections={collections} collectionBanners={collectionBanners} setCollectionBanner={setCollectionBanner} toggleCollection={toggleCollection} />}
-          {screen === 'customers'   && <CustomersScreen />}
-          {screen === 'analytics'   && <AnalyticsScreen orders={allOrders.map(o => ({ ...o, status: getStatus(o.id, o.status) }))} />}
+          {screen === 'customers'   && <CustomersScreen orders={allOrders} />}
+          {screen === 'analytics'   && <AnalyticsScreen orders={allOrders} />}
           {screen === 'settings'    && <SettingsScreen notifPrefs={notifPrefs} toggleNotif={key => setNotifPrefs(p => ({ ...p, [key]: !p[key] }))} />}
         </div>
       </div>
 
       {selectedOrder && (
-        <OrderPanel order={selectedOrder} statusOverrides={statusOverrides} updateStatus={updateStatus} onClose={() => setSelectedOrderId(null)} />
+        <OrderPanel order={selectedOrder} statusOverrides={statusOverrides} updateStatus={updateStatus} onClose={() => setSelectedOrderId(null)} productImages={productImages} />
       )}
     </div>
   );

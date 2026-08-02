@@ -26,7 +26,8 @@ export default function PDPView() {
   const toggleMaterials    = useStore(s => s.toggleMaterials);
   const toggleShipping     = useStore(s => s.toggleShipping);
 
-  const [added, setAdded] = useState(false);
+  const [added, setAdded]         = useState(false);
+  const [lightbox, setLightbox]   = useState(false);
 
   const product = selectedProduct();
   const related = relatedProducts();
@@ -49,9 +50,11 @@ export default function PDPView() {
           {/* Main image */}
           <div
             className="flex items-center justify-center mb-4"
+            onClick={() => images?.[activeImage] && setLightbox(true)}
             style={{
               aspectRatio: '4/5', position: 'relative', overflow: 'hidden',
               background: 'repeating-linear-gradient(45deg,#e7e5e0,#e7e5e0 12px,#dcd9d2 12px,#dcd9d2 24px)',
+              cursor: images?.[activeImage] ? 'zoom-in' : 'default',
             }}
           >
             {images?.[activeImage] ? (
@@ -182,6 +185,75 @@ export default function PDPView() {
           </div>
         </div>
       </div>
+
+      {/* Lightbox */}
+      {lightbox && images?.[activeImage] && (
+        <div
+          onClick={() => setLightbox(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 100,
+            background: 'rgba(10,10,10,0.92)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            animation: 'viewFadeIn 0.25s ease both',
+            cursor: 'zoom-out',
+          }}
+        >
+          {/* Close button */}
+          <button
+            onClick={() => setLightbox(false)}
+            style={{
+              position: 'absolute', top: 24, right: 28,
+              background: 'none', border: 'none', color: '#fff',
+              fontSize: 32, cursor: 'pointer', lineHeight: 1, opacity: 0.8,
+            }}
+          >×</button>
+
+          {/* Prev / Next arrows */}
+          {(images?.length ?? 0) > 1 && (
+            <>
+              <button
+                onClick={e => { e.stopPropagation(); setActiveImage((activeImage - 1 + (images?.length ?? 1)) % (images?.length ?? 1)); }}
+                style={{ position: 'absolute', left: 24, background: 'none', border: 'none', color: '#fff', fontSize: 36, cursor: 'pointer', opacity: 0.7, lineHeight: 1 }}
+              >‹</button>
+              <button
+                onClick={e => { e.stopPropagation(); setActiveImage((activeImage + 1) % (images?.length ?? 1)); }}
+                style={{ position: 'absolute', right: 24, background: 'none', border: 'none', color: '#fff', fontSize: 36, cursor: 'pointer', opacity: 0.7, lineHeight: 1 }}
+              >›</button>
+            </>
+          )}
+
+          {/* Full image */}
+          <img
+            src={images[activeImage]}
+            alt={product.name}
+            onClick={e => e.stopPropagation()}
+            style={{
+              maxWidth: '90vw', maxHeight: '90vh',
+              objectFit: 'contain',
+              boxShadow: '0 32px 80px rgba(0,0,0,0.6)',
+              animation: 'viewFadeIn 0.3s ease both',
+            }}
+          />
+
+          {/* Dot indicators */}
+          {(images?.length ?? 0) > 1 && (
+            <div style={{ position: 'absolute', bottom: 24, display: 'flex', gap: 8 }}>
+              {images!.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={e => { e.stopPropagation(); setActiveImage(i); }}
+                  style={{
+                    width: activeImage === i ? 20 : 8, height: 8, borderRadius: 4,
+                    background: activeImage === i ? '#fff' : 'rgba(255,255,255,0.4)',
+                    border: 'none', cursor: 'pointer', padding: 0,
+                    transition: 'all 0.3s ease',
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Related */}
       <section className="related-section" style={{ marginTop: 96 }}>

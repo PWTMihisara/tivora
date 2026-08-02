@@ -62,6 +62,13 @@ interface StoreState {
   setSearchQuery: (q: string) => void;
   goSearch: (q: string) => void;
 
+  // Last placed order (for confirmation page)
+  lastOrder: {
+    customerName: string;
+    items: { id: string; name: string; size: string; qty: number; price: number }[];
+    total: number;
+  } | null;
+
   // Checkout
   setCheckoutField: (field: keyof CheckoutForm, value: string) => void;
 
@@ -104,6 +111,7 @@ export const useStore = create<StoreState>()(
   materialsOpen: false,
   shippingOpen: false,
   checkoutForm: { name: '', email: '', address: '', city: '', zip: '' },
+  lastOrder: null,
 
   goHome: () => set({ view: 'home' }),
   goCollections: () => set({ view: 'collections' }),
@@ -152,6 +160,7 @@ export const useStore = create<StoreState>()(
     const { cart, checkoutForm, subtotal } = get();
     const sub = subtotal();
     const tax = Math.round(sub * 0.05);
+    const total = sub + tax;
 
     // Save to real database
     fetch('/api/orders', {
@@ -166,11 +175,19 @@ export const useStore = create<StoreState>()(
         shipping: 0,
         tax,
         subtotal: sub,
-        total:    sub + tax,
+        total,
       }),
     }).catch(err => console.error('Order save failed:', err));
 
-    set({ view: 'confirmation', cart: [] });
+    set({
+      view: 'confirmation',
+      cart: [],
+      lastOrder: {
+        customerName: checkoutForm.name || 'Guest',
+        items: cart.map(c => ({ id: c.id, name: c.name, size: c.size, qty: c.qty, price: c.price })),
+        total,
+      },
+    });
   },
 
   toggleWishlist: (id) => set(s => ({ wishlist: { ...s.wishlist, [id]: !s.wishlist[id] } })),

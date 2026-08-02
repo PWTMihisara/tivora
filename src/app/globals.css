@@ -162,6 +162,14 @@ a:hover {
   .footer-inner { padding: 48px 20px 24px !important; }
 }
 
+/* Confirmation page */
+.confirm-grid {
+  grid-template-columns: 1fr 1fr;
+}
+@media (max-width: 768px) {
+  .confirm-grid { grid-template-columns: 1fr !important; }
+}
+
 @media (max-width: 480px) {
   .featured-grid { grid-template-columns: 1fr !important; }
   .footer-grid { grid-template-columns: 1fr !important; }
@@ -169,7 +177,53 @@ a:hover {
   .related-grid { grid-template-columns: 1fr !important; }
 }
 
+/* ── Dark mode ───────────────────────────────────────────────────────────── */
+html.dark body {
+  filter: invert(1) hue-rotate(180deg);
+  background: #020203;
+}
+
+/* Re-invert product/content images so they look natural */
+html.dark img:not(.logo-img),
+html.dark video {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+/* Logo is brightness(0) → invert makes it white — correct in dark mode, so keep as-is */
+/* Re-invert the SVG icons that use currentColor so they stay readable */
+html.dark svg {
+  filter: invert(0);
+}
+
+/* Dark mode toggle button — keep icon readable */
+.dark-toggle {
+  transition: opacity 0.2s ease;
+}
+.dark-toggle:hover {
+  opacity: 0.6;
+}
+
+/* Desktop nav link hover zoom */
+.header-nav-link {
+  display: inline-block;
+  transition: transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94), letter-spacing 0.25s ease;
+}
+.header-nav-link:hover {
+  transform: scale(1.12);
+  letter-spacing: 0.18em;
+}
+
 /* Mobile header hamburger */
+@keyframes mobileNavIn {
+  from { opacity: 0; transform: translateY(-16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes navLinkIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 .mobile-menu-btn { display: none; }
 @media (max-width: 768px) {
   .mobile-menu-btn { display: flex; }
@@ -177,5 +231,14 @@ a:hover {
     position: fixed; inset: 0; background: #fdfdfc; z-index: 60;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 32px;
+    animation: mobileNavIn 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
   }
+  .mobile-nav-link {
+    opacity: 0;
+    animation: navLinkIn 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  }
+  .mobile-nav-link:nth-child(2) { animation-delay: 0.08s; }
+  .mobile-nav-link:nth-child(3) { animation-delay: 0.16s; }
+  .mobile-nav-link:nth-child(4) { animation-delay: 0.24s; }
+  .mobile-nav-link:nth-child(5) { animation-delay: 0.32s; }
 }

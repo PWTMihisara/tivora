@@ -49,6 +49,9 @@ export const useSharedStore = create<SharedState>()(
       setCollectionBanner: (name, image) =>
         set(s => ({ collectionBanners: { ...s.collectionBanners, [name]: image } })),
     }),
-    { name: 'tivora-shared' }
+    {
+      name: 'tivora-shared',
+      partialize: (state) => ({ orders: state.orders }),
+    }
   )
 );
