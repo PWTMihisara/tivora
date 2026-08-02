@@ -351,9 +351,9 @@ function DashboardScreen({ orders, setScreen }: { orders: Order[]; setScreen: (s
 
   const orderDelta = previous.length > 0 ? ((recent.length - previous.length) / previous.length * 100).toFixed(1) : null;
 
-  // Top products from real orders
+  // Top products from real orders (exclude cancelled)
   const productSales: Record<string, { sold: number; revenue: number }> = {};
-  orders.forEach(o => o.items.forEach(item => {
+  orders.filter(o => o.status !== 'Cancelled').forEach(o => o.items.forEach(item => {
     if (!productSales[item.name]) productSales[item.name] = { sold: 0, revenue: 0 };
     productSales[item.name].sold    += item.qty;
     productSales[item.name].revenue += item.price * item.qty;
@@ -377,7 +377,7 @@ function DashboardScreen({ orders, setScreen }: { orders: Order[]; setScreen: (s
     { label: 'Revenue (30d)',    value: money(rev30),    delta: fmt(revDelta, Number(revDelta) >= 0),   up: Number(revDelta) >= 0  },
     { label: 'Orders',           value: recent.length,   delta: fmt(orderDelta, Number(orderDelta) >= 0), up: Number(orderDelta) >= 0 },
     { label: 'Avg. Order Value', value: money(avgOrder), delta: fmt(avgDelta, Number(avgDelta) >= 0),   up: Number(avgDelta) >= 0  },
-    { label: 'Total Orders',     value: orders.length,   delta: `All time`,                              up: true                   },
+    { label: 'Total Orders',     value: orders.filter(o => o.status !== 'Cancelled').length,   delta: `All time`,  up: true  },
   ];
   return (
     <div>
