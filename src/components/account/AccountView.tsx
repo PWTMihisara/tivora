@@ -60,7 +60,11 @@ export default function AccountView() {
   const [expanded, setExpanded] = useState<string | null>(null);
 
   // Profile edit state
-  const [editName, setEditName]     = useState(user?.name ?? '');
+  const [editName, setEditName]       = useState(user?.name    ?? '');
+  const [editAddress, setEditAddress] = useState(user?.address ?? '');
+  const [editCity, setEditCity]       = useState(user?.city    ?? '');
+  const [editZip, setEditZip]         = useState(user?.zip     ?? '');
+  const [editPhone, setEditPhone]     = useState(user?.phone   ?? '');
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileMsg, setProfileMsg] = useState('');
 
@@ -83,8 +87,9 @@ export default function AccountView() {
   const handleSaveProfile = async () => {
     if (!editName.trim()) return;
     setSavingProfile(true);
-    const { error } = await supabase.auth.updateUser({ data: { name: editName } });
-    if (!error && user) setUser({ ...user, name: editName });
+    const meta = { name: editName, address: editAddress, city: editCity, zip: editZip, phone: editPhone };
+    const { error } = await supabase.auth.updateUser({ data: meta });
+    if (!error && user) setUser({ ...user, ...meta });
     setProfileMsg(error ? 'Failed to save.' : 'Saved!');
     setSavingProfile(false);
     setTimeout(() => setProfileMsg(''), 3000);
@@ -268,8 +273,10 @@ export default function AccountView() {
 
       {/* Profile */}
       {tab === 'profile' && (
-        <div style={{ maxWidth: 440 }}>
+        <div style={{ maxWidth: 480 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* Personal info */}
+            <div style={{ font: "700 11px/1 'Inter',sans-serif", letterSpacing: '0.12em', color: '#9a9a96', paddingBottom: 12, borderBottom: '1px solid rgba(10,10,10,0.08)' }}>PERSONAL INFO</div>
             <div>
               <div style={{ font: "600 11px/1 'Inter',sans-serif", letterSpacing: '0.1em', color: '#6b6b6b', marginBottom: 8 }}>FULL NAME</div>
               <input type="text" value={editName} onChange={e => setEditName(e.target.value)} style={inputSty} />
@@ -279,12 +286,34 @@ export default function AccountView() {
               <input type="email" value={user?.email ?? ''} disabled style={{ ...inputSty, background: '#f5f5f3', color: '#9a9a96' }} />
               <div style={{ font: "400 12px 'Inter',sans-serif", color: '#9a9a96', marginTop: 6 }}>Email cannot be changed.</div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div>
+              <div style={{ font: "600 11px/1 'Inter',sans-serif", letterSpacing: '0.1em', color: '#6b6b6b', marginBottom: 8 }}>PHONE</div>
+              <input type="tel" value={editPhone} onChange={e => setEditPhone(e.target.value)} placeholder="+94 77 000 0000" style={inputSty} />
+            </div>
+
+            {/* Saved address */}
+            <div style={{ font: "700 11px/1 'Inter',sans-serif", letterSpacing: '0.12em', color: '#9a9a96', paddingTop: 8, paddingBottom: 12, borderBottom: '1px solid rgba(10,10,10,0.08)' }}>SAVED ADDRESS</div>
+            <div>
+              <div style={{ font: "600 11px/1 'Inter',sans-serif", letterSpacing: '0.1em', color: '#6b6b6b', marginBottom: 8 }}>ADDRESS</div>
+              <input type="text" value={editAddress} onChange={e => setEditAddress(e.target.value)} placeholder="123 Main Street" style={inputSty} />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              <div>
+                <div style={{ font: "600 11px/1 'Inter',sans-serif", letterSpacing: '0.1em', color: '#6b6b6b', marginBottom: 8 }}>CITY</div>
+                <input type="text" value={editCity} onChange={e => setEditCity(e.target.value)} placeholder="Colombo" style={inputSty} />
+              </div>
+              <div>
+                <div style={{ font: "600 11px/1 'Inter',sans-serif", letterSpacing: '0.1em', color: '#6b6b6b', marginBottom: 8 }}>ZIP / POSTAL CODE</div>
+                <input type="text" value={editZip} onChange={e => setEditZip(e.target.value)} placeholder="00100" style={inputSty} />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 4 }}>
               <button
                 onClick={handleSaveProfile}
                 disabled={savingProfile}
                 style={{ background: '#0a0a0a', color: '#fff', border: 'none', padding: '14px 28px', font: "700 12px/1 'Inter',sans-serif", letterSpacing: '0.1em', cursor: 'pointer', opacity: savingProfile ? 0.6 : 1 }}
-              >{savingProfile ? 'SAVING…' : 'SAVE CHANGES'}</button>
+              >{savingProfile ? 'SAVING…' : 'SAVE ADDRESS'}</button>
               {profileMsg && <span style={{ font: "500 13px 'Inter',sans-serif", color: '#2F6B45' }}>{profileMsg}</span>}
             </div>
           </div>

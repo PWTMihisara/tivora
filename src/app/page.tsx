@@ -25,13 +25,22 @@ export default function Page() {
 
   // Restore Supabase session on mount
   useEffect(() => {
+    const mapUser = (u: { id: string; email?: string; user_metadata?: Record<string, unknown> }) => ({
+      id:      u.id,
+      email:   u.email!,
+      name:    (u.user_metadata?.name as string)    || u.email!.split('@')[0],
+      address: (u.user_metadata?.address as string) || '',
+      city:    (u.user_metadata?.city as string)    || '',
+      zip:     (u.user_metadata?.zip as string)     || '',
+      phone:   (u.user_metadata?.phone as string)   || '',
+    });
     supabase.auth.getSession().then(({ data }) => {
       const u = data.session?.user;
-      if (u) setUser({ id: u.id, email: u.email!, name: (u.user_metadata?.name as string) || u.email!.split('@')[0] });
+      if (u) setUser(mapUser(u));
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const u = session?.user;
-      if (u) setUser({ id: u.id, email: u.email!, name: (u.user_metadata?.name as string) || u.email!.split('@')[0] });
+      if (u) setUser(mapUser(u));
       else setUser(null);
     });
     return () => subscription.unsubscribe();

@@ -1,7 +1,6 @@
 'use client';
 
 import { useStore } from '@/store/useStore';
-import { CheckoutForm } from '@/types';
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
@@ -13,13 +12,16 @@ const inputStyle: React.CSSProperties = {
 };
 
 export default function CheckoutView() {
-  const checkoutForm     = useStore(s => s.checkoutForm);
-  const setCheckoutField = useStore(s => s.setCheckoutField);
-  const cartLines        = useStore(s => s.cartLines);
-  const subtotalLabel    = useStore(s => s.subtotalLabel);
-  const placeOrder       = useStore(s => s.placeOrder);
+  const checkoutForm          = useStore(s => s.checkoutForm);
+  const setCheckoutField      = useStore(s => s.setCheckoutField);
+  const fillCheckoutFromProfile = useStore(s => s.fillCheckoutFromProfile);
+  const cartLines             = useStore(s => s.cartLines);
+  const subtotalLabel         = useStore(s => s.subtotalLabel);
+  const placeOrder            = useStore(s => s.placeOrder);
+  const user                  = useStore(s => s.user);
 
   const lines = cartLines();
+  const hasSavedAddress = !!(user?.address || user?.city);
 
   return (
     <main className="checkout-layout" style={{ padding: '56px 48px 96px', maxWidth: 1200, margin: '0 auto' }}>
@@ -28,6 +30,20 @@ export default function CheckoutView() {
       <div className="checkout-layout" style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: 64 }}>
         {/* Form */}
         <div>
+          {/* Autofill banner */}
+          {user && hasSavedAddress && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f5f3f0', padding: '14px 18px', marginBottom: 28 }}>
+              <div>
+                <div style={{ font: "600 13px 'Inter',sans-serif" }}>{user.name}</div>
+                <div style={{ font: "400 12px 'Inter',sans-serif", color: '#6b6b6b', marginTop: 2 }}>{[user.address, user.city, user.zip].filter(Boolean).join(', ')}</div>
+              </div>
+              <button
+                onClick={fillCheckoutFromProfile}
+                style={{ background: '#0a0a0a', color: '#fff', border: 'none', padding: '10px 18px', font: "700 11px/1 'Inter',sans-serif", letterSpacing: '0.1em', cursor: 'pointer', whiteSpace: 'nowrap' }}
+              >USE THIS ADDRESS</button>
+            </div>
+          )}
+
           <div style={{ font: "700 12px 'Inter',sans-serif", letterSpacing: '0.12em', marginBottom: 16 }}>CONTACT</div>
           <input
             placeholder="Email address"

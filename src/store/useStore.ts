@@ -63,9 +63,10 @@ interface StoreState {
   goSearch: (q: string) => void;
 
   // Auth user
-  user: { id: string; email: string; name: string } | null;
-  setUser: (user: { id: string; email: string; name: string } | null) => void;
+  user: { id: string; email: string; name: string; address?: string; city?: string; zip?: string; phone?: string } | null;
+  setUser: (user: { id: string; email: string; name: string; address?: string; city?: string; zip?: string; phone?: string } | null) => void;
   goAccount: () => void;
+  fillCheckoutFromProfile: () => void;
 
   // Last placed order (for confirmation page)
   lastOrder: {
@@ -120,6 +121,17 @@ export const useStore = create<StoreState>()(
   user: null,
   setUser: (user) => set({ user }),
   goAccount: () => set({ view: 'account' }),
+  fillCheckoutFromProfile: () => {
+    const { user } = get();
+    if (!user) return;
+    set({ checkoutForm: {
+      name:    user.name    || '',
+      email:   user.email   || '',
+      address: user.address || '',
+      city:    user.city    || '',
+      zip:     user.zip     || '',
+    }});
+  },
 
   goHome: () => set({ view: 'home' }),
   goCollections: () => set({ view: 'collections' }),
