@@ -1,6 +1,8 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useStore } from '@/store/useStore';
+import { Address } from '@/components/account/AccountView';
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
@@ -12,16 +14,41 @@ const inputStyle: React.CSSProperties = {
 };
 
 export default function CheckoutView() {
-  const checkoutForm          = useStore(s => s.checkoutForm);
-  const setCheckoutField      = useStore(s => s.setCheckoutField);
-  const fillCheckoutFromProfile = useStore(s => s.fillCheckoutFromProfile);
-  const cartLines             = useStore(s => s.cartLines);
-  const subtotalLabel         = useStore(s => s.subtotalLabel);
-  const placeOrder            = useStore(s => s.placeOrder);
-  const user                  = useStore(s => s.user);
+  const checkoutForm     = useStore(s => s.checkoutForm);
+  const setCheckoutField = useStore(s => s.setCheckoutField);
+  const cartLines        = useStore(s => s.cartLines);
+  const subtotalLabel    = useStore(s => s.subtotalLabel);
+  const placeOrder       = useStore(s => s.placeOrder);
+  const user             = useStore(s => s.user);
+
+  const [addresses, setAddresses]   = useState<Address[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    fetch(`/api/account/addresses?user_id=${user.id}`)
+      .then(r => r.json())
+      .then((data: Address[]) => {
+        if (Array.isArray(data)) {
+          setAddresses(data);
+          const def = data.find(a => a.is_default) ?? data[0];
+          if (def) applyAddress(def, data);
+        }
+      }).catch(console.error);
+  }, [user?.id]);
+
+  const applyAddress = (addr: Address, list?: Address[]) => {
+    setSelectedId(addr.id);
+    const s = useStore.getState().setCheckoutField;
+    s('name',    addr.name    || user?.name  || '');
+    s('email',   user?.email  || '');
+    s('address', addr.address || '');
+    s('city',    addr.city    || '');
+    s('zip',     addr.zip     || '');
+    void list;
+  };
 
   const lines = cartLines();
-  const hasSavedAddress = !!(user?.address || user?.city);
 
   return (
     <main className="checkout-layout" style={{ padding: '56px 48px 96px', maxWidth: 1200, margin: '0 auto' }}>
@@ -30,24 +57,35 @@ export default function CheckoutView() {
       <div className="checkout-layout" style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: 64 }}>
         {/* Form */}
         <div>
-          {/* Autofill banner */}
-          {user && hasSavedAddress && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f5f3f0', padding: '14px 18px', marginBottom: 28 }}>
-              <div>
-                <div style={{ font: "600 13px 'Inter',sans-serif" }}>
-                  {user.name}
-                  {(user as { addressName?: string }).addressName && (
-                    <span style={{ marginLeft: 8, font: "500 11px 'Inter',sans-serif", color: '#6b6b6b', background: '#e7e5e0', padding: '2px 8px' }}>
-                      {(user as { addressName?: string }).addressName}
-                    </span>
-                  )}
-                </div>
-                <div style={{ font: "400 12px 'Inter',sans-serif", color: '#6b6b6b', marginTop: 2 }}>{[user.address, user.city, user.zip].filter(Boolean).join(', ')}</div>
+          {/* Saved addresses picker */}
+          {user && addresses.length > 0 && (
+            <div style={{ marginBottom: 28 }}>
+              <div style={{ font: "700 12px 'Inter',sans-serif", letterSpacing: '0.12em', marginBottom: 12 }}>SAVED ADDRESSES</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {addresses.map(addr => (
+                  <button
+                    key={addr.id}
+                    onClick={() => applyAddress(addr)}
+                    style={{
+                      textAlign: 'left', cursor: 'pointer', padding: '14px 18px',
+                      border: `1.5px solid ${selectedId === addr.id ? '#0a0a0a' : 'rgba(10,10,10,0.15)'}`,
+                      background: selectedId === addr.id ? '#f5f3f0' : '#fff',
+                      display: 'flex', alignItems: 'center', gap: 14,
+                    }}
+                  >
+                    <div style={{ width: 16, height: 16, borderRadius: '50%', border: `2px solid ${selectedId === addr.id ? '#0a0a0a' : 'rgba(10,10,10,0.3)'}`, background: selectedId === addr.id ? '#0a0a0a' : 'none', flexShrink: 0 }} />
+                    <div>
+                      <div style={{ font: "600 13px/1 'Inter',sans-serif", marginBottom: 3 }}>
+                        {addr.name}
+                        {addr.label && <span style={{ marginLeft: 8, font: "500 11px/1 'Inter',sans-serif", color: '#6b6b6b', background: '#e7e5e0', padding: '2px 7px' }}>{addr.label}</span>}
+                        {addr.is_default && <span style={{ marginLeft: 6, font: "600 10px/1 'Inter',sans-serif", color: '#2F6B45' }}>DEFAULT</span>}
+                      </div>
+                      <div style={{ font: "400 12px/1 'Inter',sans-serif", color: '#6b6b6b' }}>{[addr.address, addr.city, addr.zip].filter(Boolean).join(', ')}</div>
+                    </div>
+                  </button>
+                ))}
               </div>
-              <button
-                onClick={fillCheckoutFromProfile}
-                style={{ background: '#0a0a0a', color: '#fff', border: 'none', padding: '10px 18px', font: "700 11px/1 'Inter',sans-serif", letterSpacing: '0.1em', cursor: 'pointer', whiteSpace: 'nowrap' }}
-              >USE THIS ADDRESS</button>
+              <div style={{ font: "500 12px 'Inter',sans-serif", color: '#9a9a96', marginTop: 10 }}>Or fill in a different address below</div>
             </div>
           )}
 
