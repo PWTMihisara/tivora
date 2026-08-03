@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/store/useStore';
 
 type OrderStatus = 'Pending' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
-type OrderTab = 'All Orders' | 'Processing' | 'Shipped' | 'Delivered';
+type OrderTab = 'All Orders' | 'Processing' | 'Shipped' | 'Delivered' | 'Returns';
 
 interface OrderItem { product_name: string; size: string; qty: number; price: number }
 interface Order {
@@ -25,7 +25,28 @@ const STATUS_COLOR: Record<OrderStatus, { bg: string; text: string }> = {
 const money = (n: number) => 'Rs. ' + n.toLocaleString('en-US', { minimumFractionDigits: 2 });
 const fmtDate = (d: string) => new Date(d).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
 
-const ORDER_TABS: OrderTab[] = ['All Orders', 'Processing', 'Shipped', 'Delivered'];
+const ORDER_TABS: { key: OrderTab; label: string; icon: React.ReactNode }[] = [
+  {
+    key: 'All Orders', label: 'All Orders',
+    icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="1"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>,
+  },
+  {
+    key: 'Processing', label: 'Processing',
+    icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>,
+  },
+  {
+    key: 'Shipped', label: 'Shipped',
+    icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>,
+  },
+  {
+    key: 'Delivered', label: 'Delivered',
+    icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>,
+  },
+  {
+    key: 'Returns', label: 'Returns',
+    icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>,
+  },
+];
 
 export default function AccountView() {
   const user    = useStore(s => s.user);
@@ -71,6 +92,8 @@ export default function AccountView() {
 
   const visibleOrders = orderTab === 'All Orders'
     ? orders
+    : orderTab === 'Returns'
+    ? orders.filter(o => o.status === 'Cancelled')
     : orders.filter(o => o.status === orderTab);
 
   const initials = user?.name?.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) ?? '?';
@@ -122,21 +145,29 @@ export default function AccountView() {
       {/* Orders */}
       {tab === 'orders' && (
         <div>
-          {/* Order status tabs */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: 28, flexWrap: 'wrap' }}>
-            {ORDER_TABS.map(t => (
-              <button
-                key={t}
-                onClick={() => setOrderTab(t)}
-                style={{
-                  padding: '8px 18px', border: '1px solid rgba(10,10,10,0.18)',
-                  background: orderTab === t ? '#0a0a0a' : '#fff',
-                  color: orderTab === t ? '#fff' : '#0a0a0a',
-                  font: "600 12px/1 'Inter',sans-serif", letterSpacing: '0.06em',
-                  cursor: 'pointer',
-                }}
-              >{t}</button>
-            ))}
+          {/* Order status tabs — icon + label */}
+          <div style={{ display: 'flex', borderBottom: '1px solid rgba(10,10,10,0.10)', marginBottom: 36 }}>
+            {ORDER_TABS.map(({ key, label, icon }) => {
+              const active = orderTab === key;
+              return (
+                <button
+                  key={key}
+                  onClick={() => setOrderTab(key)}
+                  style={{
+                    flex: 1, background: 'none', border: 'none', cursor: 'pointer',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
+                    padding: '20px 8px',
+                    color: active ? '#0a0a0a' : '#b0b0aa',
+                    borderBottom: active ? '2px solid #0a0a0a' : '2px solid transparent',
+                    marginBottom: -1,
+                    transition: 'color 0.2s',
+                  }}
+                >
+                  {icon}
+                  <span style={{ font: "500 12px/1 'Inter',sans-serif", letterSpacing: '0.04em' }}>{label}</span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Orders list */}
