@@ -61,10 +61,11 @@ export default function AccountView() {
 
   // Profile edit state
   const [editName, setEditName]       = useState(user?.name    ?? '');
-  const [editAddress, setEditAddress] = useState(user?.address ?? '');
-  const [editCity, setEditCity]       = useState(user?.city    ?? '');
-  const [editZip, setEditZip]         = useState(user?.zip     ?? '');
-  const [editPhone, setEditPhone]     = useState(user?.phone   ?? '');
+  const [editAddressName, setEditAddressName] = useState((user as { addressName?: string })?.addressName ?? '');
+  const [editAddress, setEditAddress]         = useState(user?.address ?? '');
+  const [editCity, setEditCity]               = useState(user?.city    ?? '');
+  const [editZip, setEditZip]                 = useState(user?.zip     ?? '');
+  const [editPhone, setEditPhone]             = useState(user?.phone   ?? '');
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileMsg, setProfileMsg] = useState('');
 
@@ -87,7 +88,7 @@ export default function AccountView() {
   const handleSaveProfile = async () => {
     if (!editName.trim()) return;
     setSavingProfile(true);
-    const meta = { name: editName, address: editAddress, city: editCity, zip: editZip, phone: editPhone };
+    const meta = { name: editName, addressName: editAddressName, address: editAddress, city: editCity, zip: editZip, phone: editPhone };
     const { error } = await supabase.auth.updateUser({ data: meta });
     if (!error && user) setUser({ ...user, ...meta });
     setProfileMsg(error ? 'Failed to save.' : 'Saved!');
@@ -293,6 +294,10 @@ export default function AccountView() {
 
             {/* Saved address */}
             <div style={{ font: "700 11px/1 'Inter',sans-serif", letterSpacing: '0.12em', color: '#9a9a96', paddingTop: 8, paddingBottom: 12, borderBottom: '1px solid rgba(10,10,10,0.08)' }}>SAVED ADDRESS</div>
+            <div>
+              <div style={{ font: "600 11px/1 'Inter',sans-serif", letterSpacing: '0.1em', color: '#6b6b6b', marginBottom: 8 }}>ADDRESS LABEL</div>
+              <input type="text" value={editAddressName} onChange={e => setEditAddressName(e.target.value)} placeholder="e.g. Home, Office" style={inputSty} />
+            </div>
             <div>
               <div style={{ font: "600 11px/1 'Inter',sans-serif", letterSpacing: '0.1em', color: '#6b6b6b', marginBottom: 8 }}>ADDRESS</div>
               <input type="text" value={editAddress} onChange={e => setEditAddress(e.target.value)} placeholder="123 Main Street" style={inputSty} />

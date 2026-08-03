@@ -34,7 +34,14 @@ export default function CheckoutView() {
           {user && hasSavedAddress && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f5f3f0', padding: '14px 18px', marginBottom: 28 }}>
               <div>
-                <div style={{ font: "600 13px 'Inter',sans-serif" }}>{user.name}</div>
+                <div style={{ font: "600 13px 'Inter',sans-serif" }}>
+                  {user.name}
+                  {(user as { addressName?: string }).addressName && (
+                    <span style={{ marginLeft: 8, font: "500 11px 'Inter',sans-serif", color: '#6b6b6b', background: '#e7e5e0', padding: '2px 8px' }}>
+                      {(user as { addressName?: string }).addressName}
+                    </span>
+                  )}
+                </div>
                 <div style={{ font: "400 12px 'Inter',sans-serif", color: '#6b6b6b', marginTop: 2 }}>{[user.address, user.city, user.zip].filter(Boolean).join(', ')}</div>
               </div>
               <button
