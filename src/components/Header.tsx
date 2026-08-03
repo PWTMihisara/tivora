@@ -6,14 +6,16 @@ import { useStore } from '@/store/useStore';
 import WishlistDrawer from './WishlistDrawer';
 import SearchOverlay from './SearchOverlay';
 
-export default function Header() {
+export default function Header({ onOpenAuth }: { onOpenAuth?: () => void }) {
   const goHome         = useStore(s => s.goHome);
   const goCollections  = useStore(s => s.goCollections);
   const goPLPAll       = useStore(s => s.goPLPAll);
   const goPLPMen       = useStore(s => s.goPLPMen);
   const goPLPWomen     = useStore(s => s.goPLPWomen);
-  const openCart   = useStore(s => s.openCart);
-  const cartCount  = useStore(s => s.cart.reduce((n, c) => n + c.qty, 0));
+  const openCart       = useStore(s => s.openCart);
+  const cartCount      = useStore(s => s.cart.reduce((n, c) => n + c.qty, 0));
+  const user           = useStore(s => s.user);
+  const goAccount      = useStore(s => s.goAccount);
 
   // Subscribe directly to wishlist for reactive count
   const wishlist       = useStore(s => s.wishlist);
@@ -174,6 +176,25 @@ export default function Header() {
             <span>{wishlistCount}</span>
           </button>
 
+          {/* Account */}
+          <button
+            onClick={() => user ? goAccount() : onOpenAuth?.()}
+            className="bg-transparent border-none cursor-pointer hidden sm:flex items-center gap-[6px]"
+            aria-label="Account"
+            style={{ color: '#0a0a0a', padding: 0 }}
+          >
+            {user ? (
+              <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#0a0a0a', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', font: "700 10px/1 'Inter',sans-serif" }}>
+                {user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)}
+              </div>
+            ) : (
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+            )}
+          </button>
+
           <button
             onClick={openCart}
             className="cursor-pointer"
@@ -210,6 +231,13 @@ export default function Header() {
               {label}
             </button>
           ))}
+          <button
+            onClick={() => { setMobileOpen(false); user ? goAccount() : onOpenAuth?.(); }}
+            className="mobile-nav-link bg-transparent border-none cursor-pointer"
+            style={{ font: "700 20px/1 'Archivo',sans-serif", letterSpacing: '0.14em', color: '#0a0a0a' }}
+          >
+            {user ? 'MY ACCOUNT' : 'SIGN IN'}
+          </button>
 
         </div>
       )}

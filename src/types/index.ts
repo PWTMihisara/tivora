@@ -2,7 +2,7 @@ export type Gender = 'men' | 'women';
 export type Category = 'Outerwear' | 'Knitwear' | 'Tailoring' | 'Accessories';
 export type Size = 'XS' | 'S' | 'M' | 'L' | 'XL' | '2XL' | '3XL';
 export type SortBy = 'newest' | 'priceAsc' | 'priceDesc';
-export type View = 'home' | 'plp' | 'pdp' | 'checkout' | 'confirmation' | 'collections';
+export type View = 'home' | 'plp' | 'pdp' | 'checkout' | 'confirmation' | 'collections' | 'account';
 export type HomeVariant = 1 | 2 | 3;
 
 export interface Product {
