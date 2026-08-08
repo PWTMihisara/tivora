@@ -28,6 +28,10 @@ interface SharedState {
   productImages: Record<string, string[]>;
   setProductImages: (id: string, images: string[]) => void;
 
+  // Product name/price overrides from Supabase (admin edits)
+  productOverrides: Record<string, { name?: string; price?: number }>;
+  setProductOverride: (id: string, data: { name?: string; price?: number }) => void;
+
   // Collection banner images keyed by collection name
   collectionBanners: Record<string, string>;
   setCollectionBanner: (name: string, image: string) => void;
@@ -44,6 +48,10 @@ export const useSharedStore = create<SharedState>()(
       productImages: {},
       setProductImages: (id, images) =>
         set(s => ({ productImages: { ...s.productImages, [id]: images } })),
+
+      productOverrides: {},
+      setProductOverride: (id, data) =>
+        set(s => ({ productOverrides: { ...s.productOverrides, [id]: { ...s.productOverrides[id], ...data } } })),
 
       collectionBanners: {},
       setCollectionBanner: (name, image) =>

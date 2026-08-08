@@ -91,12 +91,19 @@ interface StoreState {
   relatedProducts: () => ReturnType<typeof withMeta>[];
 }
 
-const withMeta = (p: typeof PRODUCTS[0], wishlist: Record<string, boolean>) => ({
-  ...p,
-  priceLabel: money(p.price),
-  categoryLabel: p.category.toUpperCase() + ' · ' + (p.gender === 'men' ? 'MEN' : 'WOMEN'),
-  wished: !!wishlist[p.id],
-});
+const withMeta = (p: typeof PRODUCTS[0], wishlist: Record<string, boolean>, overrides: Record<string, { name?: string; price?: number }> = {}) => {
+  const ov    = overrides[p.id];
+  const name  = ov?.name  ?? p.name;
+  const price = ov?.price ?? p.price;
+  return {
+    ...p,
+    name,
+    price,
+    priceLabel: money(price),
+    categoryLabel: p.category.toUpperCase() + ' · ' + (p.gender === 'men' ? 'MEN' : 'WOMEN'),
+    wished: !!wishlist[p.id],
+  };
+};
 
 export const useStore = create<StoreState>()(
   persist(
@@ -243,31 +250,36 @@ export const useStore = create<StoreState>()(
 
   filteredProducts: () => {
     const { filterGender, filterCategory, sortBy, wishlist, searchQuery } = get();
+    const overrides = useSharedStore.getState().productOverrides;
     const q = searchQuery.toLowerCase().trim();
-    let filtered = PRODUCTS.filter(p =>
-      (filterGender === 'all' || p.gender === filterGender) &&
-      (filterCategory === 'all' || p.category === filterCategory) &&
-      (!q || p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q))
-    );
-    if (sortBy === 'priceAsc') filtered = [...filtered].sort((a, b) => a.price - b.price);
-    else if (sortBy === 'priceDesc') filtered = [...filtered].sort((a, b) => b.price - a.price);
-    return filtered.map(p => withMeta(p, wishlist));
+    let filtered = PRODUCTS.filter(p => {
+      const name = overrides[p.id]?.name ?? p.name;
+      return (filterGender === 'all' || p.gender === filterGender) &&
+        (filterCategory === 'all' || p.category === filterCategory) &&
+        (!q || name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q));
+    });
+    if (sortBy === 'priceAsc') filtered = [...filtered].sort((a, b) => (overrides[a.id]?.price ?? a.price) - (overrides[b.id]?.price ?? b.price));
+    else if (sortBy === 'priceDesc') filtered = [...filtered].sort((a, b) => (overrides[b.id]?.price ?? b.price) - (overrides[a.id]?.price ?? a.price));
+    return filtered.map(p => withMeta(p, wishlist, overrides));
   },
 
   featuredProducts: () => {
     const { wishlist } = get();
-    return PRODUCTS.slice(0, 4).map(p => withMeta(p, wishlist));
+    const overrides = useSharedStore.getState().productOverrides;
+    return PRODUCTS.slice(0, 4).map(p => withMeta(p, wishlist, overrides));
   },
 
   selectedProduct: () => {
     const { selectedProductId, wishlist } = get();
+    const overrides = useSharedStore.getState().productOverrides;
     const p = PRODUCTS.find(p => p.id === selectedProductId) || PRODUCTS[0];
-    return withMeta(p, wishlist);
+    return withMeta(p, wishlist, overrides);
   },
 
   relatedProducts: () => {
     const { selectedProductId, wishlist } = get();
-    return PRODUCTS.filter(p => p.id !== selectedProductId).slice(0, 4).map(p => withMeta(p, wishlist));
+    const overrides = useSharedStore.getState().productOverrides;
+    return PRODUCTS.filter(p => p.id !== selectedProductId).slice(0, 4).map(p => withMeta(p, wishlist, overrides));
   },
     }),
     {

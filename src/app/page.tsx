@@ -20,6 +20,7 @@ export default function Page() {
   const view                = useStore(s => s.view);
   const setUser             = useStore(s => s.setUser);
   const setProductImages    = useSharedStore(s => s.setProductImages);
+  const setProductOverride  = useSharedStore(s => s.setProductOverride);
   const setCollectionBanner = useSharedStore(s => s.setCollectionBanner);
   const [authOpen, setAuthOpen] = useState(false);
 
@@ -54,10 +55,11 @@ export default function Page() {
     // Load real product images from Supabase
     fetch('/api/products')
       .then(r => r.json())
-      .then((data: { id: string; images: string[] | null }[]) => {
+      .then((data: { id: string; name?: string; price?: number; images: string[] | null }[]) => {
         if (Array.isArray(data)) {
           data.forEach(p => {
             if (p.images?.length) setProductImages(p.id, p.images);
+            if (p.name || p.price != null) setProductOverride(p.id, { name: p.name, price: p.price });
           });
         }
       })
