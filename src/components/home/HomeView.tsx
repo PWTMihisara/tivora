@@ -57,25 +57,42 @@ export default function HomeView() {
     <main>
       {/* DARK CINEMATIC HERO */}
       <section
-        style={{ background: '#0a0a0a', color: '#fff', minHeight: 'calc(100vh - 88px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', position: 'relative' }}
+        style={{ background: '#0a0a0a', color: '#fff', minHeight: 'calc(100vh - 88px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', position: 'relative', overflow: 'hidden' }}
       >
-        <div style={{ width: 56, height: 56, background: '#fff', transform: 'rotate(45deg)', marginBottom: 36 }} />
-        <div style={{ font: "600 12px/1 'Inter',sans-serif", letterSpacing: '0.25em', color: '#9a9a96', marginBottom: 18 }}>TIVORA · CLOTHING</div>
-        <h1 style={{ font: "800 48px/1.1 'Archivo',sans-serif", letterSpacing: '-0.01em', margin: '0 0 20px', maxWidth: 640 }}>
-          Quiet luxury,<br />deliberately built.
-        </h1>
-        <p style={{ font: "400 16px/1.6 'Inter',sans-serif", color: '#c9c9c6', maxWidth: 420, margin: '0 0 36px' }}>
-          A wardrobe of essentials designed to outlast trend cycles entirely.
-        </p>
-        <button
-          onClick={goPLPAll}
-          style={{ background: 'transparent', color: '#fff', border: '1px solid #fff', padding: '16px 32px', font: "700 12px/1 'Inter',sans-serif", letterSpacing: '0.12em', cursor: 'pointer' }}
+        {/* Video background */}
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }}
         >
-          ENTER THE COLLECTION
-        </button>
+          <source src="/hero-video.mp4" type="video/mp4" />
+        </video>
+        {/* Dark overlay */}
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 1 }} />
+
+        {/* Content */}
+        <div style={{ position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ width: 56, height: 56, background: '#fff', transform: 'rotate(45deg)', marginBottom: 36 }} />
+          <div style={{ font: "600 12px/1 'Inter',sans-serif", letterSpacing: '0.25em', color: '#9a9a96', marginBottom: 18 }}>TIVORA · CLOTHING</div>
+          <h1 style={{ font: "800 48px/1.1 'Archivo',sans-serif", letterSpacing: '-0.01em', margin: '0 0 20px', maxWidth: 640 }}>
+            Quiet luxury,<br />deliberately built.
+          </h1>
+          <p style={{ font: "400 16px/1.6 'Inter',sans-serif", color: '#c9c9c6', maxWidth: 420, margin: '0 0 36px' }}>
+            A wardrobe of essentials designed to outlast trend cycles entirely.
+          </p>
+          <button
+            onClick={goPLPAll}
+            style={{ background: 'transparent', color: '#fff', border: '1px solid #fff', padding: '16px 32px', font: "700 12px/1 'Inter',sans-serif", letterSpacing: '0.12em', cursor: 'pointer' }}
+          >
+            ENTER THE COLLECTION
+          </button>
+        </div>
+
         <div
           className="animate-bounce-down absolute bottom-7"
-          style={{ width: 1, height: 36, background: 'rgba(255,255,255,0.5)' }}
+          style={{ width: 1, height: 36, background: 'rgba(255,255,255,0.5)', zIndex: 2 }}
         />
       </section>
 
