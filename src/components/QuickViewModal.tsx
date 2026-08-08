@@ -26,10 +26,11 @@ export default function QuickViewModal({ product, onClose }: Props) {
   const [selectedSize, setSelectedSize] = useState<Size | null>(null);
   const [sizeError, setSizeError]       = useState(false);
   const [added, setAdded]               = useState(false);
+  const [isMobile, setIsMobile]         = useState(false);
 
-  // Lock body scroll
   useEffect(() => {
     document.body.style.overflow = 'hidden';
+    setIsMobile(window.innerWidth <= 768);
     return () => { document.body.style.overflow = ''; };
   }, []);
 
@@ -60,19 +61,21 @@ export default function QuickViewModal({ product, onClose }: Props) {
         onClick={e => e.stopPropagation()}
         className="quickview-inner"
         style={{
-          background: '#fff', maxWidth: 720, width: '100%',
-          display: 'grid', gridTemplateColumns: '1fr 1fr',
+          background: '#fff', maxWidth: isMobile ? '100%' : 720, width: '100%',
+          display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
           borderRadius: 12, overflow: 'hidden',
           boxShadow: '0 24px 64px rgba(0,0,0,0.2)',
           animation: 'viewFadeIn 0.25s ease both',
-          maxHeight: '90vh', overflowY: 'auto' as const,
-          WebkitOverflowScrolling: 'touch',
+          maxHeight: isMobile ? '80vh' : '90vh',
+          overflowY: 'auto' as const,
+          WebkitOverflowScrolling: 'touch' as const,
         }}
       >
         {/* Image */}
         <div style={{
-          aspectRatio: '4/5', position: 'relative', overflow: 'hidden',
+          aspectRatio: isMobile ? '3/2' : '4/5', position: 'relative', overflow: 'hidden',
           background: 'repeating-linear-gradient(45deg,#e7e5e0,#e7e5e0 12px,#dcd9d2 12px,#dcd9d2 24px)',
+          flexShrink: 0,
         }}>
           {images?.[0] ? (
             <img src={images[0]} alt={name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
