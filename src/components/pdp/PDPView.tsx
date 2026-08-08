@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { useStore } from '@/store/useStore';
 import { useSharedStore } from '@/store/useSharedStore';
 import { SIZES } from '@/data/products';
@@ -27,8 +28,19 @@ export default function PDPView() {
   const toggleMaterials    = useStore(s => s.toggleMaterials);
   const toggleShipping     = useStore(s => s.toggleShipping);
 
-  const [added, setAdded]         = useState(false);
-  const [lightbox, setLightbox]   = useState(false);
+  const [added, setAdded]             = useState(false);
+  const [lightbox, setLightbox]       = useState(false);
+  const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
+
+  // Lock body scroll when size guide is open
+  useEffect(() => {
+    if (sizeGuideOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [sizeGuideOpen]);
 
   const product = selectedProduct();
   const related = relatedProducts();
@@ -117,7 +129,16 @@ export default function PDPView() {
           </p>
 
           {/* Size */}
-          <div style={{ font: "700 11px 'Inter',sans-serif", letterSpacing: '0.14em', marginBottom: 12 }}>SIZE</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div style={{ font: "700 11px 'Inter',sans-serif", letterSpacing: '0.14em' }}>SIZE</div>
+            <button
+              onClick={() => setSizeGuideOpen(true)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, font: "500 12px 'Inter',sans-serif", color: '#0a0a0a', textDecoration: 'underline', padding: 0 }}
+            >
+              Size guide
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            </button>
+          </div>
           <div className="pdp-sizes flex gap-[10px]" style={{ marginBottom: 24 }}>
             {SIZES.map(sz => {
               const oos = isSizeOutOfStock(sz);
@@ -304,6 +325,57 @@ export default function PDPView() {
           ))}
         </div>
       </section>
+
+      {/* Size Guide Modal — uses portal-style fixed overlay */}
+      {sizeGuideOpen && typeof document !== 'undefined' && ReactDOM.createPortal(
+        <div
+          onClick={() => setSizeGuideOpen(false)}
+          style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(10,10,10,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, animation: 'viewFadeIn 0.2s ease both' }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: '#fff', borderRadius: 12, maxWidth: 560, width: '100%', maxHeight: '85vh', overflowY: 'auto', padding: '36px 32px' }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+              <h3 style={{ font: "800 20px 'Archivo',sans-serif", margin: 0, letterSpacing: '-0.01em' }}>SIZE GUIDE</h3>
+              <button onClick={() => setSizeGuideOpen(false)} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#6b6b6b', lineHeight: 1 }}>×</button>
+            </div>
+
+            <div style={{ font: "600 11px 'Inter',sans-serif", letterSpacing: '0.12em', color: '#9a9a96', marginBottom: 12 }}>MEASUREMENTS (INCHES)</div>
+            <table style={{ width: '100%', borderCollapse: 'collapse', font: "400 13px 'Inter',sans-serif" }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid #0a0a0a' }}>
+                  {['Size', 'Chest', 'Waist', 'Hips', 'Length'].map(h => (
+                    <th key={h} style={{ padding: '10px 8px', textAlign: 'left', font: "700 11px 'Inter',sans-serif", letterSpacing: '0.08em' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  ['XS', '34', '28', '36', '27'],
+                  ['S',  '36', '30', '38', '28'],
+                  ['M',  '38', '32', '40', '29'],
+                  ['L',  '40', '34', '42', '30'],
+                  ['XL', '42', '36', '44', '31'],
+                  ['2XL','44', '38', '46', '32'],
+                  ['3XL','46', '40', '48', '33'],
+                ].map((row, i) => (
+                  <tr key={row[0]} style={{ borderBottom: '1px solid rgba(10,10,10,0.08)', background: i % 2 === 0 ? '#f9f8f6' : '#fff' }}>
+                    {row.map((cell, j) => (
+                      <td key={j} style={{ padding: '10px 8px', fontWeight: j === 0 ? 700 : 400 }}>{cell}"</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <div style={{ marginTop: 24, font: "400 13px/1.6 'Inter',sans-serif", color: '#6b6b6b' }}>
+              <strong style={{ color: '#0a0a0a' }}>How to measure:</strong> Take measurements over undergarments. Keep the tape measure snug but not tight. If you're between sizes, we recommend sizing up for a relaxed fit.
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </main>
   );
 }

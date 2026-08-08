@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { useStore } from '@/store/useStore';
 import { useSharedStore } from '@/store/useSharedStore';
 import { Product, Size } from '@/types';
@@ -26,6 +27,12 @@ export default function QuickViewModal({ product, onClose }: Props) {
   const [sizeError, setSizeError]       = useState(false);
   const [added, setAdded]               = useState(false);
 
+  // Lock body scroll
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+
   const hasInventory = Object.keys(stockBySize).length > 0;
   const isSizeOos = (sz: Size) => hasInventory && (stockBySize[sz] ?? 0) === 0;
   const selectedOos = selectedSize ? isSizeOos(selectedSize) : false;
@@ -38,11 +45,11 @@ export default function QuickViewModal({ product, onClose }: Props) {
     setTimeout(() => setAdded(false), 2000);
   };
 
-  return (
+  return ReactDOM.createPortal(
     <div
       onClick={onClose}
       style={{
-        position: 'fixed', inset: 0, zIndex: 80,
+        position: 'fixed', inset: 0, zIndex: 9999,
         background: 'rgba(10,10,10,0.6)', backdropFilter: 'blur(4px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         animation: 'viewFadeIn 0.2s ease both',
@@ -58,6 +65,7 @@ export default function QuickViewModal({ product, onClose }: Props) {
           borderRadius: 12, overflow: 'hidden',
           boxShadow: '0 24px 64px rgba(0,0,0,0.2)',
           animation: 'viewFadeIn 0.25s ease both',
+          maxHeight: '90vh', overflowY: 'auto',
         }}
       >
         {/* Image */}
@@ -145,6 +153,7 @@ export default function QuickViewModal({ product, onClose }: Props) {
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
