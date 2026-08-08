@@ -1,9 +1,12 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useStore } from '@/store/useStore';
 import { useSharedStore } from '@/store/useSharedStore';
 import ProductCard from '@/components/ProductCard';
+import QuickViewModal from '@/components/QuickViewModal';
+import { Product } from '@/types';
+import { CATEGORIES } from '@/data/products';
 
 function useReveal() {
   const revealedRef = useRef<Set<string>>(new Set());
@@ -48,10 +51,21 @@ export default function HomeView() {
   const goPLPWomen     = useStore(s => s.goPLPWomen);
   const selectProduct  = useStore(s => s.selectProduct);
   const quickAdd       = useStore(s => s.quickAdd);
+  const setCategory    = useStore(s => s.setCategory);
   const featuredProducts = useStore(s => s.featuredProducts);
 
   const featured = featuredProducts();
   const collectionBanners = useSharedStore(s => s.collectionBanners);
+
+  const [quickViewProduct, setQuickViewProduct] = useState<(Product & { priceLabel: string; categoryLabel: string }) | null>(null);
+  const [email, setEmail]     = useState('');
+  const [subDone, setSubDone] = useState(false);
+
+  const categoryIcons: Record<string, string> = {
+    Outerwear: '🧥', Knitwear: '🧶', Tailoring: '👔', Accessories: '👜',
+  };
+
+  const handleCategory = (cat: string) => { setCategory(cat); goPLPAll(); };
 
   return (
     <main>
@@ -146,9 +160,67 @@ export default function HomeView() {
               product={p}
               onSelect={p => selectProduct(p.id)}
               onQuickAdd={p => quickAdd(p.id)}
+              onQuickView={p => setQuickViewProduct(p as Product & { priceLabel: string; categoryLabel: string })}
             />
           ))}
         </div>
+      </section>
+
+      {/* CATEGORY TILES */}
+      <section data-reveal="categories" style={{ ...revealStyle, padding: '0 48px 96px' }}>
+        <h2 style={{ font: "800 28px 'Archivo',sans-serif", margin: '0 0 32px', letterSpacing: '-0.01em', textAlign: 'center' }}>SHOP BY CATEGORY</h2>
+        <div className="category-tiles" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16 }}>
+          {CATEGORIES.map(cat => (
+            <button
+              key={cat}
+              onClick={() => handleCategory(cat)}
+              style={{
+                background: '#f5f3f0', border: 'none', cursor: 'pointer',
+                padding: '40px 24px', textAlign: 'center', borderRadius: 10,
+                transition: 'background 0.2s, transform 0.2s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#0a0a0a'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.transform = 'translateY(-4px)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#f5f3f0'; e.currentTarget.style.color = '#0a0a0a'; e.currentTarget.style.transform = 'none'; }}
+            >
+              <div style={{ fontSize: 32, marginBottom: 12 }}>{categoryIcons[cat]}</div>
+              <div style={{ font: "700 12px/1 'Inter',sans-serif", letterSpacing: '0.12em' }}>{cat.toUpperCase()}</div>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* NEWSLETTER SECTION */}
+      <section data-reveal="newsletter" style={{ ...revealStyle, padding: '80px 48px', background: '#f5f3f0', textAlign: 'center' }}>
+        <h2 style={{ font: "800 28px/1.2 'Archivo',sans-serif", margin: '0 0 12px', letterSpacing: '-0.01em' }}>JOIN THE TIVORA WORLD</h2>
+        <p style={{ font: "400 15px/1.6 'Inter',sans-serif", color: '#6b6b6b', margin: '0 auto 28px', maxWidth: 420 }}>
+          Be the first to know about new collections, exclusive offers, and stories behind the craft.
+        </p>
+        {subDone ? (
+          <div style={{ font: "600 14px 'Inter',sans-serif", color: '#2F6B45' }}>Thank you for subscribing!</div>
+        ) : (
+          <div style={{ display: 'flex', gap: 0, maxWidth: 440, margin: '0 auto' }}>
+            <input
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="Your email address"
+              style={{
+                flex: 1, border: '1px solid rgba(10,10,10,0.2)', borderRight: 'none',
+                padding: '14px 18px', font: "400 14px 'Inter',sans-serif",
+                outline: 'none', background: '#fff', borderRadius: '6px 0 0 6px',
+              }}
+            />
+            <button
+              onClick={() => { if (email.includes('@')) setSubDone(true); }}
+              style={{
+                background: '#0a0a0a', color: '#fff', border: 'none',
+                padding: '14px 28px', font: "700 12px/1 'Inter',sans-serif",
+                letterSpacing: '0.1em', cursor: 'pointer', borderRadius: '0 6px 6px 0',
+              }}
+            >
+              SUBSCRIBE
+            </button>
+          </div>
+        )}
       </section>
 
       {/* SHARED: CTA BAND */}
@@ -165,6 +237,11 @@ export default function HomeView() {
           EXPLORE THE COLLECTION
         </button>
       </section>
+
+      {/* Quick View Modal */}
+      {quickViewProduct && (
+        <QuickViewModal product={quickViewProduct} onClose={() => setQuickViewProduct(null)} />
+      )}
     </main>
   );
 }

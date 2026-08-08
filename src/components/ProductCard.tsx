@@ -9,9 +9,10 @@ interface Props {
   product: Product & { priceLabel: string; categoryLabel: string };
   onSelect: (p: Product) => void;
   onQuickAdd: (p: Product) => void;
+  onQuickView?: (p: Product) => void;
 }
 
-export default function ProductCard({ product, onSelect, onQuickAdd }: Props) {
+export default function ProductCard({ product, onSelect, onQuickAdd, onQuickView }: Props) {
   const toggleWishlist = useStore(s => s.toggleWishlist);
   const storeWished    = useStore(s => !!s.wishlist[product.id]);
   const savedImages    = useSharedStore(s => s.productImages[product.id]);
@@ -87,22 +88,36 @@ export default function ProductCard({ product, onSelect, onQuickAdd }: Props) {
           {wished ? '♥' : '♡'}
         </button>
 
-        {/* Quick Add */}
-        <button
-          type="button"
-          onClick={e => { e.stopPropagation(); e.preventDefault(); onQuickAdd(product); }}
-          className="quick-add-btn"
-          style={{
-            position: 'absolute', left: 0, right: 0, bottom: 0,
-            background: '#0a0a0a', color: '#fff', border: 'none',
-            padding: '12px 0', cursor: 'pointer',
-            font: "700 11px 'Inter',sans-serif", letterSpacing: '0.1em',
-            opacity: 0, transition: 'opacity 0.2s ease',
-            zIndex: 20,
-          }}
-        >
-          QUICK ADD
-        </button>
+        {/* Quick View + Quick Add */}
+        <div className="quick-add-btn" style={{
+          position: 'absolute', left: 0, right: 0, bottom: 0,
+          display: 'flex', opacity: 0, transition: 'opacity 0.2s ease', zIndex: 20,
+        }}>
+          {onQuickView && (
+            <button
+              type="button"
+              onClick={e => { e.stopPropagation(); e.preventDefault(); onQuickView(product); }}
+              style={{
+                flex: 1, background: '#fff', color: '#0a0a0a', border: 'none',
+                padding: '12px 0', cursor: 'pointer',
+                font: "700 11px 'Inter',sans-serif", letterSpacing: '0.1em',
+              }}
+            >
+              QUICK VIEW
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={e => { e.stopPropagation(); e.preventDefault(); onQuickAdd(product); }}
+            style={{
+              flex: 1, background: '#0a0a0a', color: '#fff', border: 'none',
+              padding: '12px 0', cursor: 'pointer',
+              font: "700 11px 'Inter',sans-serif", letterSpacing: '0.1em',
+            }}
+          >
+            QUICK ADD
+          </button>
+        </div>
       </div>
 
       <div style={{ font: "600 11px 'Inter',sans-serif", letterSpacing: '0.1em', color: '#6b6b6b', marginBottom: 6 }}>

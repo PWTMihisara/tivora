@@ -27,6 +27,7 @@ interface StoreState {
   // Navigation
   goHome: () => void;
   goCollections: () => void;
+  goFaq: () => void;
   goPLPAll: () => void;
   goPLPMen: () => void;
   goPLPWomen: () => void;
@@ -143,6 +144,7 @@ export const useStore = create<StoreState>()(
 
   goHome: () => set({ view: 'home' }),
   goCollections: () => set({ view: 'collections' }),
+  goFaq: () => set({ view: 'faq' }),
   goPLPAll: () => set({ view: 'plp', filterGender: 'all' }),
   goPLPMen: () => set({ view: 'plp', filterGender: 'men' }),
   goPLPWomen: () => set({ view: 'plp', filterGender: 'women' }),

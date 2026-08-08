@@ -14,6 +14,7 @@ import CheckoutView from '@/components/checkout/CheckoutView';
 import ConfirmationView from '@/components/confirmation/ConfirmationView';
 import CollectionsView from '@/components/collections/CollectionsView';
 import AccountView from '@/components/account/AccountView';
+import FAQView from '@/components/faq/FAQView';
 import AuthModal from '@/components/auth/AuthModal';
 
 export default function Page() {
@@ -93,6 +94,10 @@ export default function Page() {
 
   return (
     <div style={{ position: 'relative', minHeight: '100vh', background: '#fdfdfc', color: '#0a0a0a' }}>
+      {/* Announcement Bar */}
+      <div className="announcement-bar" style={{ background: '#0a0a0a', color: '#fff', textAlign: 'center', padding: '10px 16px', font: "500 11px/1 'Inter',sans-serif", letterSpacing: '0.1em' }}>
+        FREE SHIPPING ON ORDERS OVER Rs. 3,000 &nbsp;·&nbsp; 30-DAY RETURNS
+      </div>
       <Header onOpenAuth={() => setAuthOpen(true)} />
 
       {view === 'home'         && <div key="home"         className="view-fade"><HomeView /></div>}
@@ -102,6 +107,7 @@ export default function Page() {
       {view === 'checkout'     && <div key="checkout"     className="view-fade"><CheckoutView /></div>}
       {view === 'confirmation' && <div key="confirmation" className="view-fade"><ConfirmationView /></div>}
       {view === 'account'      && <div key="account"      className="view-fade"><AccountView /></div>}
+      {view === 'faq'          && <div key="faq"          className="view-fade"><FAQView /></div>}
 
       {view !== 'confirmation' && <Footer />}
 

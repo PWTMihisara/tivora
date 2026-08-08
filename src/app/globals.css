@@ -246,6 +246,16 @@ html.dark svg {
   .addr-form-3col { grid-template-columns: 1fr 1fr !important; }
 }
 
+/* ── Category tiles & Quick View responsive ── */
+@media (max-width: 768px) {
+  .category-tiles { grid-template-columns: repeat(2, 1fr) !important; }
+  .quickview-inner { grid-template-columns: 1fr !important; max-height: 90vh; overflow-y: auto; }
+  .announcement-bar { font-size: 10px !important; padding: 8px 12px !important; }
+}
+@media (max-width: 480px) {
+  .category-tiles { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+}
+
 .mobile-menu-btn { display: none; }
 @media (max-width: 768px) {
   .mobile-menu-btn { display: flex; }

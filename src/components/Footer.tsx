@@ -7,6 +7,7 @@ export default function Footer() {
   const goPLPMen   = useStore(s => s.goPLPMen);
   const goPLPWomen = useStore(s => s.goPLPWomen);
   const goPLPAll   = useStore(s => s.goPLPAll);
+  const goFaq      = useStore(s => s.goFaq);
 
   return (
     <footer className="footer-inner" style={{ background: '#0a0a0a', color: '#fff', padding: '72px 48px 32px' }}>
@@ -54,9 +55,9 @@ export default function Footer() {
         <div>
           <div style={{ font: "700 11px 'Inter',sans-serif", letterSpacing: '0.12em', marginBottom: 16 }}>HELP</div>
           <div className="flex flex-col gap-[10px]">
-            {['Shipping', 'Returns', 'Contact'].map(item => (
-              <span key={item} style={{ font: "400 13px 'Inter',sans-serif", color: '#c9c9c6' }}>{item}</span>
-            ))}
+            <button onClick={goFaq} className="text-left bg-transparent border-none cursor-pointer hover:text-white transition-colors" style={{ font: "400 13px 'Inter',sans-serif", color: '#c9c9c6' }}>FAQ</button>
+            <button onClick={goFaq} className="text-left bg-transparent border-none cursor-pointer hover:text-white transition-colors" style={{ font: "400 13px 'Inter',sans-serif", color: '#c9c9c6' }}>Shipping</button>
+            <button onClick={goFaq} className="text-left bg-transparent border-none cursor-pointer hover:text-white transition-colors" style={{ font: "400 13px 'Inter',sans-serif", color: '#c9c9c6' }}>Returns</button>
           </div>
         </div>
 
