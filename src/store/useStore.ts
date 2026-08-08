@@ -155,6 +155,10 @@ export const useStore = create<StoreState>()(
     if (!size) { set({ sizeError: true }); return; }
     const product = PRODUCTS.find(p => p.id === productId);
     if (!product) return;
+    const overrides = useSharedStore.getState().productOverrides;
+    const ov = overrides[productId];
+    const name  = ov?.name  ?? product.name;
+    const price = ov?.price ?? product.price;
     set(s => {
       const idx = s.cart.findIndex(c => c.id === productId && c.size === size);
       let cart: CartLine[];
@@ -162,7 +166,7 @@ export const useStore = create<StoreState>()(
         cart = [...s.cart];
         cart[idx] = { ...cart[idx], qty: cart[idx].qty + 1 };
       } else {
-        cart = [...s.cart, { id: product.id, name: product.name, price: product.price, size, qty: 1 }];
+        cart = [...s.cart, { id: product.id, name, price, size, qty: 1 }];
       }
       return { cart, cartOpen: true, sizeError: false };
     });
