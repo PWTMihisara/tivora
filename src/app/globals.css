@@ -252,7 +252,7 @@ html.dark svg {
 /* ── Category tiles & Quick View responsive ── */
 @media (max-width: 768px) {
   .category-tiles { grid-template-columns: repeat(2, 1fr) !important; }
-  .quickview-inner { grid-template-columns: 1fr !important; max-height: 90vh; overflow-y: auto; }
+  .quickview-inner { grid-template-columns: 1fr !important; max-height: 85vh; overflow-y: auto; }
   .announcement-bar { font-size: 10px !important; padding: 8px 12px !important; }
 }
 @media (max-width: 480px) {
