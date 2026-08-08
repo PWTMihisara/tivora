@@ -65,7 +65,8 @@ export default function QuickViewModal({ product, onClose }: Props) {
           borderRadius: 12, overflow: 'hidden',
           boxShadow: '0 24px 64px rgba(0,0,0,0.2)',
           animation: 'viewFadeIn 0.25s ease both',
-          maxHeight: '90vh', overflowY: 'auto',
+          maxHeight: '90vh', overflowY: 'auto' as const,
+          WebkitOverflowScrolling: 'touch',
         }}
       >
         {/* Image */}
