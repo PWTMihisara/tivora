@@ -42,6 +42,7 @@ export default function CheckoutView() {
     const s = useStore.getState().setCheckoutField;
     s('name',    addr.name    || user?.name  || '');
     s('email',   user?.email  || '');
+    s('phone',   addr.phone   || '');
     s('address', addr.address || '');
     s('city',    addr.city    || '');
     s('zip',     addr.zip     || '');
@@ -94,6 +95,12 @@ export default function CheckoutView() {
             placeholder="Email address"
             value={checkoutForm.email}
             onChange={e => setCheckoutField('email', e.target.value)}
+            style={{ ...inputStyle, marginBottom: 12 }}
+          />
+          <input
+            placeholder="Phone number"
+            value={checkoutForm.phone}
+            onChange={e => setCheckoutField('phone', e.target.value)}
             style={{ ...inputStyle, marginBottom: 32 }}
           />
 

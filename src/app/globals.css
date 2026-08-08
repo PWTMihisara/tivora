@@ -224,6 +224,28 @@ html.dark svg {
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* ── Account page responsive ── */
+@media (max-width: 768px) {
+  .account-main { padding: 32px 20px 72px !important; }
+  .account-header { flex-direction: column; align-items: flex-start !important; gap: 16px !important; margin-bottom: 32px !important; }
+  .account-order-tabs button { padding: 14px 4px !important; gap: 6px !important; }
+  .account-order-tabs button svg { width: 22px !important; height: 22px !important; }
+  .account-order-tabs button span { font-size: 10px !important; }
+  .account-order-row { flex-direction: column; align-items: flex-start !important; }
+  .account-order-meta { gap: 16px !important; }
+  .addr-form-2col { grid-template-columns: 1fr !important; }
+  .addr-form-3col { grid-template-columns: 1fr 1fr !important; }
+}
+@media (max-width: 480px) {
+  .account-main { padding: 24px 16px 64px !important; }
+  .addr-form-3col { grid-template-columns: 1fr !important; }
+  .account-order-meta { flex-direction: column; gap: 10px !important; }
+}
+@media (min-width: 769px) and (max-width: 1024px) {
+  .account-main { padding: 40px 32px 80px !important; }
+  .addr-form-3col { grid-template-columns: 1fr 1fr !important; }
+}
+
 .mobile-menu-btn { display: none; }
 @media (max-width: 768px) {
   .mobile-menu-btn { display: flex; }

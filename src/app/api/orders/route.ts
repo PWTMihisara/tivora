@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
     id:       orderId,
     customer: body.customer,
     email:    body.email,
+    phone:    body.phone ?? null,
     address:  body.address,
     payment:  body.payment ?? 'Pending',
     status:   'Pending',

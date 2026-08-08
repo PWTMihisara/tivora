@@ -116,7 +116,7 @@ export const useStore = create<StoreState>()(
   sizeError: false,
   materialsOpen: false,
   shippingOpen: false,
-  checkoutForm: { name: '', email: '', address: '', city: '', zip: '' },
+  checkoutForm: { name: '', email: '', phone: '', address: '', city: '', zip: '' },
   lastOrder: null,
   user: null,
   setUser: (user) => set({ user }),
@@ -127,6 +127,7 @@ export const useStore = create<StoreState>()(
     set({ checkoutForm: {
       name:    user.name    || '',
       email:   user.email   || '',
+      phone:   user.phone   || '',
       address: user.address || '',
       city:    user.city    || '',
       zip:     user.zip     || '',
@@ -189,6 +190,7 @@ export const useStore = create<StoreState>()(
       body: JSON.stringify({
         customer: checkoutForm.name || 'Guest',
         email:    checkoutForm.email,
+        phone:    checkoutForm.phone || null,
         address:  [checkoutForm.address, checkoutForm.city, checkoutForm.zip].filter(Boolean).join(', '),
         items:    cart.map(c => ({ name: c.name, size: c.size, qty: c.qty, price: c.price })),
         payment:  'Pending',

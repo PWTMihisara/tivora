@@ -77,7 +77,7 @@ type Screen = 'dashboard' | 'orders' | 'products' | 'inventory' | 'collections' 
 
 interface OrderItem { name: string; variant: string; qty: number; price: number }
 interface Order {
-  id: string; customer: string; email: string; date: string;
+  id: string; customer: string; email: string; phone?: string; date: string;
   items: OrderItem[]; payment: string; address: string;
   status: OrderStatus; shipping: number; tax: number;
   itemCount: number; subtotal: number; total: number;
@@ -1239,6 +1239,7 @@ function OrderPanel({ order, statusOverrides, updateStatus, onClose, productImag
           <div style={{ background: '#F7F5F2', borderRadius: 10, padding: 16, marginBottom: 24 }}>
             <div style={{ fontSize: 14, fontWeight: 700 }}>{order.customer}</div>
             <div style={{ fontSize: 13, color: '#7C7870', marginTop: 4 }}>{order.email}</div>
+            {order.phone && <div style={{ fontSize: 13, color: '#7C7870', marginTop: 4 }}>{order.phone}</div>}
             <div style={{ fontSize: 13, color: '#7C7870', marginTop: 8, lineHeight: 1.5 }}>{order.address}</div>
           </div>
 
@@ -1356,13 +1357,14 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     // Load real orders from Supabase
     fetch('/api/orders')
       .then(r => r.json())
-      .then((data: { id: string; customer: string; email: string; address: string; payment: string; status: string; shipping: number; tax: number; subtotal: number; total: number; created_at: string; order_items: { product_name: string; qty: number; size: string; price: number }[] }[]) => {
+      .then((data: { id: string; customer: string; email: string; phone?: string; address: string; payment: string; status: string; shipping: number; tax: number; subtotal: number; total: number; created_at: string; order_items: { product_name: string; qty: number; size: string; price: number }[] }[]) => {
         if (Array.isArray(data)) {
           const mapped: Order[] = data.map(o => ({
             id: o.id,
             customer: o.customer,
             email: o.email,
-            date: o.created_at, // keep raw ISO timestamp for accurate date filtering
+            phone: o.phone,
+            date: o.created_at,
             address: o.address,
             items: (o.order_items ?? []).map(i => ({ name: i.product_name, variant: i.size, qty: i.qty, price: i.price })),
             payment: o.payment,

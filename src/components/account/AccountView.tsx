@@ -58,7 +58,7 @@ function AddressForm({ initial, onSave, onCancel, saving }: {
 
   return (
     <div style={{ background: '#f9f8f6', border: '1px solid rgba(10,10,10,0.1)', padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+      <div className="addr-form-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
         <div>
           <div style={{ font: "600 11px/1 'Inter',sans-serif", letterSpacing: '0.1em', color: '#6b6b6b', marginBottom: 7 }}>ADDRESS LABEL</div>
           <input value={form.label} onChange={field('label')} placeholder="e.g. Home, Office" style={inp} />
@@ -72,7 +72,7 @@ function AddressForm({ initial, onSave, onCancel, saving }: {
         <div style={{ font: "600 11px/1 'Inter',sans-serif", letterSpacing: '0.1em', color: '#6b6b6b', marginBottom: 7 }}>ADDRESS</div>
         <input value={form.address} onChange={field('address')} placeholder="123 Main Street" style={inp} />
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
+      <div className="addr-form-3col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
         <div>
           <div style={{ font: "600 11px/1 'Inter',sans-serif", letterSpacing: '0.1em', color: '#6b6b6b', marginBottom: 7 }}>CITY</div>
           <input value={form.city} onChange={field('city')} placeholder="Colombo" style={inp} />
@@ -204,17 +204,17 @@ export default function AccountView() {
   const initials = user?.name?.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) ?? '?';
 
   return (
-    <main style={{ maxWidth: 900, margin: '0 auto', padding: '56px 48px 96px' }}>
+    <main className="account-main" style={{ maxWidth: 900, margin: '0 auto', padding: '56px 48px 96px' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 48 }}>
+      <div className="account-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 48 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-          <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#0a0a0a', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', font: "700 18px/1 'Archivo',sans-serif" }}>{initials}</div>
+          <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#0a0a0a', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', font: "700 18px/1 'Archivo',sans-serif", flexShrink: 0 }}>{initials}</div>
           <div>
             <div style={{ font: "700 20px/1 'Archivo',sans-serif", marginBottom: 4 }}>{user?.name}</div>
             <div style={{ font: "400 14px 'Inter',sans-serif", color: '#6b6b6b' }}>{user?.email}</div>
           </div>
         </div>
-        <button onClick={handleSignOut} style={{ background: 'none', border: '1px solid rgba(10,10,10,0.2)', padding: '10px 20px', font: "600 12px/1 'Inter',sans-serif", letterSpacing: '0.08em', cursor: 'pointer', color: '#6b6b6b' }}>SIGN OUT</button>
+        <button onClick={handleSignOut} style={{ background: 'none', border: '1px solid rgba(10,10,10,0.2)', padding: '10px 20px', font: "600 12px/1 'Inter',sans-serif", letterSpacing: '0.08em', cursor: 'pointer', color: '#6b6b6b', flexShrink: 0, borderRadius: 24 }}>SIGN OUT</button>
       </div>
 
       {/* Main tabs */}
@@ -229,7 +229,7 @@ export default function AccountView() {
       {/* ── ORDER HISTORY ── */}
       {tab === 'orders' && (
         <div>
-          <div style={{ display: 'flex', borderBottom: '1px solid rgba(10,10,10,0.10)', marginBottom: 36 }}>
+          <div className="account-order-tabs" style={{ display: 'flex', borderBottom: '1px solid rgba(10,10,10,0.10)', marginBottom: 36 }}>
             {ORDER_TABS.map(({ key, label, icon }) => {
               const active = orderTab === key;
               return (
@@ -254,10 +254,10 @@ export default function AccountView() {
                 const isOpen = expanded === order.id;
                 const sc = STATUS_COLOR[order.status] ?? STATUS_COLOR.Pending;
                 return (
-                  <div key={order.id} style={{ border: '1px solid rgba(10,10,10,0.12)', background: '#fff' }}>
+                  <div key={order.id} style={{ border: '1px solid rgba(10,10,10,0.12)', background: '#fff', borderRadius: 12, overflow: 'hidden' }}>
                     <button onClick={() => setExpanded(isOpen ? null : order.id)} style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '20px 24px', textAlign: 'left' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
+                      <div className="account-order-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+                        <div className="account-order-meta" style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
                           {[['ORDER', order.id], ['DATE', fmtDate(order.created_at)], ['ITEMS', String(order.order_items?.length ?? 0)], ['TOTAL', money(order.total)]].map(([l, v]) => (
                             <div key={l}>
                               <div style={{ font: "600 13px/1 'Inter',sans-serif", color: '#9a9a96', marginBottom: 4 }}>{l}</div>
