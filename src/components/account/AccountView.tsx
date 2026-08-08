@@ -284,8 +284,8 @@ export default function AccountView() {
                           </div>
                         ))}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxWidth: 280, marginLeft: 'auto', marginTop: 16 }}>
-                          {[['Subtotal', money(order.subtotal)], order.shipping > 0 && ['Shipping', money(order.shipping)], order.tax > 0 && ['Tax', money(order.tax)]].filter(Boolean).map(([l, v]) => (
-                            <div key={l as string} style={{ display: 'flex', justifyContent: 'space-between', font: "400 13px/1 'Inter',sans-serif", color: '#6b6b6b' }}><span>{l}</span><span>{v}</span></div>
+                          {([['Subtotal', money(order.subtotal)], ...(order.shipping > 0 ? [['Shipping', money(order.shipping)]] : []), ...(order.tax > 0 ? [['Tax', money(order.tax)]] : [])] as [string, string][]).map(([l, v]) => (
+                            <div key={l} style={{ display: 'flex', justifyContent: 'space-between', font: "400 13px/1 'Inter',sans-serif", color: '#6b6b6b' }}><span>{l}</span><span>{v}</span></div>
                           ))}
                           <div style={{ display: 'flex', justifyContent: 'space-between', font: "700 15px/1 'Inter',sans-serif", paddingTop: 10, borderTop: '1px solid rgba(10,10,10,0.12)', marginTop: 4 }}><span>Total</span><span>{money(order.total)}</span></div>
                         </div>
