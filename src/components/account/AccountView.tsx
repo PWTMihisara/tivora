@@ -103,9 +103,10 @@ function AddressForm({ initial, onSave, onCancel, saving }: {
 }
 
 export default function AccountView() {
-  const user    = useStore(s => s.user);
-  const setUser = useStore(s => s.setUser);
-  const goHome  = useStore(s => s.goHome);
+  const user       = useStore(s => s.user);
+  const setUser    = useStore(s => s.setUser);
+  const goHome     = useStore(s => s.goHome);
+  const goTracking = useStore(s => s.goTracking);
 
   const [tab, setTab]           = useState<'profile' | 'orders'>('orders');
   const [orderTab, setOrderTab] = useState<OrderTab>('All Orders');
@@ -290,6 +291,12 @@ export default function AccountView() {
                           <div style={{ display: 'flex', justifyContent: 'space-between', font: "700 15px/1 'Inter',sans-serif", paddingTop: 10, borderTop: '1px solid rgba(10,10,10,0.12)', marginTop: 4 }}><span>Total</span><span>{money(order.total)}</span></div>
                         </div>
                         {order.address && <div style={{ marginTop: 16, font: "400 13px/1.5 'Inter',sans-serif", color: '#6b6b6b' }}><span style={{ fontWeight: 600, color: '#0a0a0a' }}>Delivery: </span>{order.address}</div>}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); goTracking(order.id); }}
+                          style={{ marginTop: 16, background: '#0a0a0a', color: '#fff', border: 'none', padding: '12px 24px', font: "700 12px 'Inter',sans-serif", letterSpacing: '0.1em', cursor: 'pointer', borderRadius: 6 }}
+                        >
+                          TRACK ORDER
+                        </button>
                       </div>
                     )}
                   </div>

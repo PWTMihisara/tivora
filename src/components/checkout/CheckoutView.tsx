@@ -17,12 +17,50 @@ export default function CheckoutView() {
   const checkoutForm     = useStore(s => s.checkoutForm);
   const setCheckoutField = useStore(s => s.setCheckoutField);
   const cartLines        = useStore(s => s.cartLines);
+  const subtotal         = useStore(s => s.subtotal);
   const subtotalLabel    = useStore(s => s.subtotalLabel);
   const placeOrder       = useStore(s => s.placeOrder);
   const user             = useStore(s => s.user);
 
   const [addresses, setAddresses]   = useState<Address[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // Promo code state
+  const [promoCode, setPromoCode]         = useState('');
+  const [promoLoading, setPromoLoading]   = useState(false);
+  const [promoError, setPromoError]       = useState('');
+  const [promoDiscount, setPromoDiscount] = useState<{ code: string; discount_amount: number } | null>(null);
+
+  const money = (n: number) => 'Rs. ' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const applyPromo = async () => {
+    if (!promoCode.trim()) return;
+    setPromoLoading(true);
+    setPromoError('');
+    try {
+      const res = await fetch('/api/promo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: promoCode.trim(), subtotal: subtotal() }),
+      });
+      const data = await res.json();
+      if (data.valid) {
+        setPromoDiscount({ code: promoCode.trim().toUpperCase(), discount_amount: data.discount_amount });
+      } else {
+        setPromoError(data.message || 'Invalid promo code');
+        setPromoDiscount(null);
+      }
+    } catch {
+      setPromoError('Something went wrong');
+    }
+    setPromoLoading(false);
+  };
+
+  const removePromo = () => {
+    setPromoDiscount(null);
+    setPromoCode('');
+    setPromoError('');
+  };
 
   useEffect(() => {
     if (!user?.id) return;
@@ -149,14 +187,59 @@ export default function CheckoutView() {
               </div>
             ))}
             <div style={{ height: 1, background: 'rgba(10,10,10,0.12)', margin: '16px 0' }} />
+
+            {/* Promo code */}
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ font: "700 11px 'Inter',sans-serif", letterSpacing: '0.1em', marginBottom: 8 }}>PROMO CODE</div>
+              {promoDiscount ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#EAF3EC', borderRadius: 6, padding: '10px 14px' }}>
+                  <div>
+                    <span style={{ font: "700 12px 'Inter',sans-serif", color: '#2F6B45' }}>{promoDiscount.code}</span>
+                    <span style={{ font: "400 12px 'Inter',sans-serif", color: '#2F6B45', marginLeft: 8 }}>−{money(promoDiscount.discount_amount)}</span>
+                  </div>
+                  <button onClick={removePromo} style={{ background: 'none', border: 'none', cursor: 'pointer', font: "600 14px 'Inter',sans-serif", color: '#6b6b6b' }}>×</button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', gap: 0 }}>
+                  <input
+                    value={promoCode}
+                    onChange={e => { setPromoCode(e.target.value); setPromoError(''); }}
+                    placeholder="Enter code"
+                    style={{
+                      flex: 1, border: '1px solid rgba(10,10,10,0.2)', borderRight: 'none',
+                      padding: '10px 14px', font: "400 13px 'Inter',sans-serif",
+                      outline: 'none', borderRadius: '4px 0 0 4px',
+                    }}
+                  />
+                  <button
+                    onClick={applyPromo}
+                    disabled={promoLoading}
+                    style={{
+                      background: '#0a0a0a', color: '#fff', border: 'none',
+                      padding: '10px 16px', font: "700 11px 'Inter',sans-serif",
+                      letterSpacing: '0.08em', cursor: 'pointer', borderRadius: '0 4px 4px 0',
+                    }}
+                  >
+                    {promoLoading ? '...' : 'APPLY'}
+                  </button>
+                </div>
+              )}
+              {promoError && <div style={{ font: "400 12px 'Inter',sans-serif", color: '#A6402E', marginTop: 6 }}>{promoError}</div>}
+            </div>
+
             <div className="flex justify-between mb-2" style={{ font: "400 13px 'Inter',sans-serif" }}>
               <span>Subtotal</span><span>{subtotalLabel()}</span>
             </div>
+            {promoDiscount && (
+              <div className="flex justify-between mb-2" style={{ font: "400 13px 'Inter',sans-serif", color: '#2F6B45' }}>
+                <span>Discount</span><span>−{money(promoDiscount.discount_amount)}</span>
+              </div>
+            )}
             <div className="flex justify-between mb-4" style={{ font: "400 13px 'Inter',sans-serif" }}>
               <span>Shipping</span><span>Complimentary</span>
             </div>
             <div className="flex justify-between mb-6" style={{ font: "700 15px 'Inter',sans-serif" }}>
-              <span>Total</span><span>{subtotalLabel()}</span>
+              <span>Total</span><span>{money(subtotal() - (promoDiscount?.discount_amount ?? 0))}</span>
             </div>
             <button
               onClick={placeOrder}

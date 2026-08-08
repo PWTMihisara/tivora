@@ -15,6 +15,7 @@ import ConfirmationView from '@/components/confirmation/ConfirmationView';
 import CollectionsView from '@/components/collections/CollectionsView';
 import AccountView from '@/components/account/AccountView';
 import FAQView from '@/components/faq/FAQView';
+import TrackingView from '@/components/tracking/TrackingView';
 import AuthModal from '@/components/auth/AuthModal';
 
 export default function Page() {
@@ -25,6 +26,7 @@ export default function Page() {
   const setInventory        = useSharedStore(s => s.setInventory);
   const setCollectionBanner = useSharedStore(s => s.setCollectionBanner);
   const [authOpen, setAuthOpen] = useState(false);
+  const [announcementBar, setAnnouncementBar] = useState('FREE SHIPPING ON ORDERS OVER Rs. 3,000 \u00a0·\u00a0 30-DAY RETURNS');
 
   // Restore Supabase session on mount
   useEffect(() => {
@@ -37,13 +39,27 @@ export default function Page() {
       zip:     (u.user_metadata?.zip as string)     || '',
       phone:   (u.user_metadata?.phone as string)   || '',
     });
+    const syncWishlist = (userId: string) => {
+      fetch(`/api/wishlist?user_id=${userId}`)
+        .then(r => r.json())
+        .then((data: { product_id: string }[]) => {
+          if (Array.isArray(data) && data.length > 0) {
+            const wl: Record<string, boolean> = {};
+            data.forEach(d => { wl[d.product_id] = true; });
+            // Merge with local wishlist (local takes priority for items, backend adds missing)
+            const current = useStore.getState().wishlist;
+            useStore.setState({ wishlist: { ...wl, ...current } });
+          }
+        })
+        .catch(console.error);
+    };
     supabase.auth.getSession().then(({ data }) => {
       const u = data.session?.user;
-      if (u) setUser(mapUser(u));
+      if (u) { setUser(mapUser(u)); syncWishlist(u.id); }
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const u = session?.user;
-      if (u) setUser(mapUser(u));
+      if (u) { setUser(mapUser(u)); syncWishlist(u.id); }
       else setUser(null);
     });
     return () => subscription.unsubscribe();
@@ -90,13 +106,21 @@ export default function Page() {
         }
       })
       .catch(console.error);
+
+    // Load site settings (announcement bar etc.)
+    fetch('/api/settings')
+      .then(r => r.json())
+      .then((data: Record<string, string>) => {
+        if (data.announcement_bar) setAnnouncementBar(data.announcement_bar);
+      })
+      .catch(console.error);
   }, []);
 
   return (
     <div style={{ position: 'relative', minHeight: '100vh', background: '#fdfdfc', color: '#0a0a0a' }}>
       {/* Announcement Bar */}
       <div className="announcement-bar" style={{ background: '#0a0a0a', color: '#fff', textAlign: 'center', padding: '10px 16px', font: "500 11px/1 'Inter',sans-serif", letterSpacing: '0.1em' }}>
-        FREE SHIPPING ON ORDERS OVER Rs. 3,000 &nbsp;·&nbsp; 30-DAY RETURNS
+        {announcementBar}
       </div>
       <Header onOpenAuth={() => setAuthOpen(true)} />
 
@@ -108,6 +132,7 @@ export default function Page() {
       {view === 'confirmation' && <div key="confirmation" className="view-fade"><ConfirmationView /></div>}
       {view === 'account'      && <div key="account"      className="view-fade"><AccountView /></div>}
       {view === 'faq'          && <div key="faq"          className="view-fade"><FAQView /></div>}
+      {view === 'tracking'     && <div key="tracking"     className="view-fade"><TrackingView /></div>}
 
       {view !== 'confirmation' && <Footer />}
 

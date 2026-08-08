@@ -53,6 +53,7 @@ export default function ProductCard({ product, onSelect, onQuickAdd, onQuickView
           <img
             src={images[0]}
             alt={product.name}
+            loading="lazy"
             className="card-img"
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }}
           />

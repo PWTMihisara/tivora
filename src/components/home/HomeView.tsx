@@ -58,8 +58,10 @@ export default function HomeView() {
   const collectionBanners = useSharedStore(s => s.collectionBanners);
 
   const [quickViewProduct, setQuickViewProduct] = useState<(Product & { priceLabel: string; categoryLabel: string }) | null>(null);
-  const [email, setEmail]     = useState('');
-  const [subDone, setSubDone] = useState(false);
+  const [email, setEmail]       = useState('');
+  const [subDone, setSubDone]   = useState(false);
+  const [subLoading, setSubLoading] = useState(false);
+  const [subError, setSubError] = useState('');
 
   const categoryIcons: Record<string, string> = {
     Outerwear: '🧥', Knitwear: '🧶', Tailoring: '👔', Accessories: '👜',
@@ -198,7 +200,7 @@ export default function HomeView() {
         {subDone ? (
           <div style={{ font: "600 14px 'Inter',sans-serif", color: '#2F6B45' }}>Thank you for subscribing!</div>
         ) : (
-          <div style={{ display: 'flex', gap: 0, maxWidth: 440, margin: '0 auto' }}>
+          <div className="newsletter-bar" style={{ display: 'flex', gap: 0, maxWidth: 440, margin: '0 auto', width: '100%' }}>
             <input
               value={email}
               onChange={e => setEmail(e.target.value)}
@@ -210,17 +212,33 @@ export default function HomeView() {
               }}
             />
             <button
-              onClick={() => { if (email.includes('@')) setSubDone(true); }}
+              onClick={async () => {
+                if (!email.includes('@')) return;
+                setSubLoading(true);
+                setSubError('');
+                try {
+                  const res = await fetch('/api/newsletter', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email }),
+                  });
+                  if (res.ok) { setSubDone(true); }
+                  else { setSubError('Something went wrong. Try again.'); }
+                } catch { setSubError('Something went wrong. Try again.'); }
+                setSubLoading(false);
+              }}
+              disabled={subLoading}
               style={{
                 background: '#0a0a0a', color: '#fff', border: 'none',
                 padding: '14px 28px', font: "700 12px/1 'Inter',sans-serif",
                 letterSpacing: '0.1em', cursor: 'pointer', borderRadius: '0 6px 6px 0',
               }}
             >
-              SUBSCRIBE
+              {subLoading ? 'SENDING...' : 'SUBSCRIBE'}
             </button>
           </div>
         )}
+        {subError && <div style={{ font: "400 13px 'Inter',sans-serif", color: '#A6402E', marginTop: 12 }}>{subError}</div>}
       </section>
 
       {/* SHARED: CTA BAND */}

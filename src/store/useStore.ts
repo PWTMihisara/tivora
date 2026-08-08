@@ -67,6 +67,8 @@ interface StoreState {
   user: { id: string; email: string; name: string; address?: string; city?: string; zip?: string; phone?: string } | null;
   setUser: (user: { id: string; email: string; name: string; address?: string; city?: string; zip?: string; phone?: string } | null) => void;
   goAccount: () => void;
+  trackingOrderId: string | null;
+  goTracking: (orderId: string) => void;
   fillCheckoutFromProfile: () => void;
 
   // Last placed order (for confirmation page)
@@ -127,8 +129,10 @@ export const useStore = create<StoreState>()(
   checkoutForm: { name: '', email: '', phone: '', address: '', city: '', zip: '' },
   lastOrder: null,
   user: null,
+  trackingOrderId: null,
   setUser: (user) => set({ user }),
   goAccount: () => set({ view: 'account' }),
+  goTracking: (orderId) => set({ view: 'tracking', trackingOrderId: orderId }),
   fillCheckoutFromProfile: () => {
     const { user } = get();
     if (!user) return;
@@ -225,7 +229,19 @@ export const useStore = create<StoreState>()(
     });
   },
 
-  toggleWishlist: (id) => set(s => ({ wishlist: { ...s.wishlist, [id]: !s.wishlist[id] } })),
+  toggleWishlist: (id) => {
+    const { wishlist, user } = get();
+    const next = !wishlist[id];
+    set({ wishlist: { ...wishlist, [id]: next } });
+    // Sync with backend if logged in
+    if (user) {
+      if (next) {
+        fetch('/api/wishlist', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: user.id, product_id: id }) }).catch(console.error);
+      } else {
+        fetch('/api/wishlist', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: user.id, product_id: id }) }).catch(console.error);
+      }
+    }
+  },
 
   selectProduct: (id) => set({ view: 'pdp', selectedProductId: id, activeImage: 0, selectedSize: null, sizeError: false }),
   setActiveImage: (i) => set({ activeImage: i }),
@@ -285,7 +301,21 @@ export const useStore = create<StoreState>()(
   relatedProducts: () => {
     const { selectedProductId, wishlist } = get();
     const overrides = useSharedStore.getState().productOverrides;
-    return PRODUCTS.filter(p => p.id !== selectedProductId).slice(0, 4).map(p => withMeta(p, wishlist, overrides));
+    const current = PRODUCTS.find(p => p.id === selectedProductId);
+    if (!current) return PRODUCTS.slice(0, 4).map(p => withMeta(p, wishlist, overrides));
+    const others = PRODUCTS.filter(p => p.id !== selectedProductId);
+    // Score: same category +3, same gender +2, similar price (+1 if within 30%)
+    const currentPrice = overrides[current.id]?.price ?? current.price;
+    const scored = others.map(p => {
+      let score = 0;
+      if (p.category === current.category) score += 3;
+      if (p.gender === current.gender) score += 2;
+      const pPrice = overrides[p.id]?.price ?? p.price;
+      if (Math.abs(pPrice - currentPrice) / currentPrice <= 0.3) score += 1;
+      return { p, score };
+    });
+    scored.sort((a, b) => b.score - a.score);
+    return scored.slice(0, 4).map(({ p }) => withMeta(p, wishlist, overrides));
   },
     }),
     {

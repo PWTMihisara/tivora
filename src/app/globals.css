@@ -159,6 +159,9 @@ a:hover {
   .hero-text h1 { font-size: 42px !important; }
   .cta-band { padding: 56px 20px !important; }
   .marquee-band { display: none; }
+  .newsletter-bar { flex-direction: column !important; max-width: 100% !important; }
+  .newsletter-bar input { border-right: 1px solid rgba(10,10,10,0.2) !important; border-radius: 6px !important; margin-bottom: 10px !important; }
+  .newsletter-bar button { border-radius: 6px !important; }
   .footer-inner { padding: 48px 20px 24px !important; }
 }
 

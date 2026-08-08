@@ -1127,11 +1127,68 @@ function AnalyticsScreen({ orders }: { orders: Order[] }) {
 
 /* ─── Settings ───────────────────────────────────────────────────────────────── */
 
-function SettingsScreen({ notifPrefs, toggleNotif }: {
+function SettingsScreen({ notifPrefs, toggleNotif, announcementBar, setAnnouncementBar }: {
   notifPrefs: Record<string, boolean>; toggleNotif: (key: string) => void;
+  announcementBar: string; setAnnouncementBar: (v: string) => void;
 }) {
+  const [barDraft, setBarDraft] = useState(announcementBar);
+  const [barSaving, setBarSaving] = useState(false);
+  const [barSaved, setBarSaved] = useState(false);
+  const barChanged = barDraft !== announcementBar;
+
+  useEffect(() => { setBarDraft(announcementBar); }, [announcementBar]);
+
+  const saveBar = async () => {
+    setBarSaving(true);
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'announcement_bar', value: barDraft }),
+      });
+      if (res.ok) {
+        setAnnouncementBar(barDraft);
+        setBarSaved(true);
+        setTimeout(() => setBarSaved(false), 2000);
+      }
+    } catch { /* ignore */ }
+    setBarSaving(false);
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 720 }}>
+      {/* Announcement Bar */}
+      <div style={{ background: '#fff', border: '1px solid #E7E4DE', borderRadius: 12, padding: 24 }}>
+        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Announcement Bar</div>
+        <div style={{ fontSize: 12, color: '#A6A199', marginBottom: 16 }}>This text appears at the top of your storefront.</div>
+        <input
+          value={barDraft}
+          onChange={e => { setBarDraft(e.target.value); setBarSaved(false); }}
+          style={{
+            width: '100%', boxSizing: 'border-box', border: '1px solid #E7E4DE',
+            borderRadius: 8, padding: '11px 14px', fontSize: 13, fontFamily: 'inherit',
+            outline: 'none', background: '#fff',
+          }}
+        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
+          <button
+            onClick={saveBar}
+            disabled={!barChanged || barSaving}
+            style={{
+              background: barChanged ? '#181715' : '#E7E4DE', color: barChanged ? '#fff' : '#A6A199',
+              border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 13, fontWeight: 700,
+              cursor: barChanged ? 'pointer' : 'default', letterSpacing: '0.04em',
+            }}
+          >
+            {barSaving ? 'Saving…' : 'Save'}
+          </button>
+          {barSaved && <span style={{ fontSize: 12, color: '#2F6B45', fontWeight: 600 }}>Saved!</span>}
+        </div>
+        <div style={{ marginTop: 14, background: '#0a0a0a', color: '#fff', textAlign: 'center', padding: '10px 16px', fontSize: 11, fontWeight: 500, letterSpacing: '0.1em', borderRadius: 6 }}>
+          {barDraft || 'Preview will appear here'}
+        </div>
+      </div>
+
       <div style={{ background: '#fff', border: '1px solid #E7E4DE', borderRadius: 12, padding: 24 }}>
         <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>Store Profile</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -1168,6 +1225,9 @@ function SettingsScreen({ notifPrefs, toggleNotif }: {
         })}
       </div>
 
+      {/* Newsletter Subscribers */}
+      <NewsletterSubscribers />
+
       <div style={{ background: '#fff', border: '1px solid #E7E4DE', borderRadius: 12, padding: 24 }}>
         <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>Team Members</div>
         {TEAM.map(t => (
@@ -1183,6 +1243,59 @@ function SettingsScreen({ notifPrefs, toggleNotif }: {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function NewsletterSubscribers() {
+  const [subs, setSubs] = useState<{ id: string; email: string; created_at: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/newsletter')
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data)) setSubs(data); })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  return (
+    <div style={{ background: '#fff', border: '1px solid #E7E4DE', borderRadius: 12, padding: 24 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <div>
+          <div style={{ fontSize: 15, fontWeight: 700 }}>Newsletter Subscribers</div>
+          <div style={{ fontSize: 12, color: '#A6A199', marginTop: 2 }}>{subs.length} subscriber{subs.length !== 1 ? 's' : ''}</div>
+        </div>
+        {subs.length > 0 && (
+          <button
+            onClick={() => {
+              const csv = 'Email,Subscribed Date\n' + subs.map(s => `${s.email},${new Date(s.created_at).toLocaleDateString()}`).join('\n');
+              const blob = new Blob([csv], { type: 'text/csv' });
+              const a = document.createElement('a');
+              a.href = URL.createObjectURL(blob);
+              a.download = 'tivora-subscribers.csv';
+              a.click();
+            }}
+            style={{ background: '#181715', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 12, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.04em' }}
+          >
+            Export CSV
+          </button>
+        )}
+      </div>
+      {loading ? (
+        <div style={{ fontSize: 13, color: '#A6A199', padding: '16px 0' }}>Loading...</div>
+      ) : subs.length === 0 ? (
+        <div style={{ fontSize: 13, color: '#A6A199', padding: '16px 0', textAlign: 'center' }}>No subscribers yet.</div>
+      ) : (
+        <div style={{ maxHeight: 280, overflowY: 'auto' }}>
+          {subs.map(s => (
+            <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #EFEDE8', fontSize: 13 }}>
+              <span style={{ fontWeight: 600 }}>{s.email}</span>
+              <span style={{ color: '#A6A199', fontSize: 12 }}>{new Date(s.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -1375,6 +1488,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [collections, setCollections] = useState<Collection[]>(BASE_COLLECTIONS);
   const [apiOrders, setApiOrders]       = useState<Order[]>([]);
   const [inventoryRows, setInventoryRows] = useState<{ sku: string; product: string; stock: number; reorder_at: number }[]>([]);
+  const [announcementBar, setAnnouncementBar] = useState('FREE SHIPPING ON ORDERS OVER Rs. 3,000 · 30-DAY RETURNS');
   const toggleCollection = (name: string) =>
     setCollections(prev => prev.map(c => c.name === name ? { ...c, active: !c.active } : c));
 
@@ -1440,6 +1554,14 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         }
       })
       .catch(console.error);
+
+    // Load site settings (announcement bar etc.)
+    fetch('/api/settings')
+      .then(r => r.json())
+      .then((data: Record<string, string>) => {
+        if (data.announcement_bar) setAnnouncementBar(data.announcement_bar);
+      })
+      .catch(console.error);
   }, []);
 
   // Use real orders only once they've loaded; fall back to demo data while loading
@@ -1481,7 +1603,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           {screen === 'collections' && <CollectionsScreen collections={collections} collectionBanners={collectionBanners} setCollectionBanner={setCollectionBanner} toggleCollection={toggleCollection} />}
           {screen === 'customers'   && <CustomersScreen orders={allOrders} />}
           {screen === 'analytics'   && <AnalyticsScreen orders={allOrders} />}
-          {screen === 'settings'    && <SettingsScreen notifPrefs={notifPrefs} toggleNotif={key => setNotifPrefs(p => ({ ...p, [key]: !p[key] }))} />}
+          {screen === 'settings'    && <SettingsScreen notifPrefs={notifPrefs} toggleNotif={key => setNotifPrefs(p => ({ ...p, [key]: !p[key] }))} announcementBar={announcementBar} setAnnouncementBar={setAnnouncementBar} />}
         </div>
       </div>
 

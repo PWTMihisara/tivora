@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useStore } from '@/store/useStore';
 import { useSharedStore } from '@/store/useSharedStore';
 import { SIZES } from '@/data/products';
 import ProductCard from '@/components/ProductCard';
+import ReviewsSection from '@/components/pdp/ReviewsSection';
 import { Size } from '@/types';
 
 export default function PDPView() {
@@ -285,6 +286,9 @@ export default function PDPView() {
           )}
         </div>
       )}
+
+      {/* Reviews */}
+      <ReviewsSection productId={product.id} />
 
       {/* Related */}
       <section className="related-section" style={{ marginTop: 96 }}>
