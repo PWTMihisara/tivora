@@ -535,12 +535,19 @@ function ProductsScreen({ productView, setProductView, productImages, setProduct
   const [draftImages, setDraftImages] = useState<(string | null)[]>([null, null, null]);
   const [uploading, setUploading]     = useState<boolean[]>([false, false, false]);
   const [saving, setSaving]           = useState(false);
+  const [draftName, setDraftName]     = useState('');
+  const [draftPrice, setDraftPrice]   = useState('');
+  const [localEdits, setLocalEdits]   = useState<Record<string, { name: string; price: number }>>({});
 
   const editingProduct = STOREFRONT_PRODUCTS.find(p => p.id === editingId);
 
   const openEdit = (id: string) => {
     const cur = productImages[id] ?? [];
+    const p = STOREFRONT_PRODUCTS.find(p => p.id === id)!;
+    const local = localEdits[id];
     setDraftImages([cur[0] ?? null, cur[1] ?? null, cur[2] ?? null]);
+    setDraftName(local?.name ?? p.name);
+    setDraftPrice(String(local?.price ?? p.price));
     setUploading([false, false, false]);
     setEditingId(id);
   };
@@ -577,15 +584,21 @@ function ProductsScreen({ productView, setProductView, productImages, setProduct
     setSaving(true);
     const images = draftImages.filter(Boolean) as string[];
 
-    // Save URLs to Supabase products table via admin API
-    await fetch(`/api/products/${editingId}/images`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ images }),
-    });
+    await Promise.all([
+      fetch(`/api/products/${editingId}/images`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ images }),
+      }),
+      fetch(`/api/products/${editingId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: draftName.trim(), price: parseFloat(draftPrice) }),
+      }),
+    ]);
 
-    // Update in-memory store so UI updates immediately
     setProductImages(editingId, images);
+    setLocalEdits(prev => ({ ...prev, [editingId]: { name: draftName.trim(), price: parseFloat(draftPrice) } }));
     setSaving(false);
     setEditingId(null);
   };
@@ -606,23 +619,26 @@ function ProductsScreen({ productView, setProductView, productImages, setProduct
             {STOREFRONT_PRODUCTS.map(p => {
               const imgs = productImages[p.id];
               const hasImg = imgs && imgs.length > 0;
+              const local = localEdits[p.id];
+              const displayName  = local?.name  ?? p.name;
+              const displayPrice = local?.price ?? p.price;
               return (
                 <div key={p.id} style={{ background: '#fff', border: `1px solid ${editingId === p.id ? '#181715' : '#E7E4DE'}`, borderRadius: 12, overflow: 'hidden' }}>
                   <div style={{ height: 160, position: 'relative', background: HATCH, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                     {hasImg
-                      ? <img src={imgs[0]} alt={p.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ? <img src={imgs[0]} alt={displayName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
                       : <span style={{ fontSize: 10, fontFamily: 'monospace', color: '#A6A199', letterSpacing: '0.04em' }}>NO IMAGE</span>
                     }
                   </div>
                   <div style={{ padding: 14 }}>
                     <div style={{ fontSize: 11, color: '#A6A199', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{p.category}</div>
-                    <div style={{ fontSize: 13, fontWeight: 700, marginTop: 4 }}>{p.name}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, marginTop: 4 }}>{displayName}</div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700 }}>{money(p.price)}</div>
+                      <div style={{ fontSize: 13, fontWeight: 700 }}>{money(displayPrice)}</div>
                       <div style={{ fontSize: 11, color: '#A6A199' }}>{hasImg ? `${imgs.length}/3` : '0/3'} images</div>
                     </div>
                     <button onClick={() => editingId === p.id ? setEditingId(null) : openEdit(p.id)} style={{ width: '100%', marginTop: 12, border: '1px solid #E7E4DE', borderRadius: 7, padding: '8px 0', fontSize: 12, fontWeight: 600, cursor: 'pointer', background: editingId === p.id ? '#181715' : 'transparent', color: editingId === p.id ? '#fff' : '#181715' }}>
-                      {editingId === p.id ? 'Editing…' : 'Edit Images'}
+                      {editingId === p.id ? 'Editing…' : 'Edit'}
                     </button>
                   </div>
                 </div>
@@ -637,14 +653,17 @@ function ProductsScreen({ productView, setProductView, productImages, setProduct
             {STOREFRONT_PRODUCTS.map(p => {
               const imgs = productImages[p.id];
               const hasImg = imgs && imgs.length > 0;
+              const local = localEdits[p.id];
+              const displayName  = local?.name  ?? p.name;
+              const displayPrice = local?.price ?? p.price;
               return (
                 <div key={p.id} style={{ display: 'grid', gridTemplateColumns: '56px 1.6fr 1fr 100px 80px 100px', minWidth: 760, padding: '12px 20px', alignItems: 'center', borderBottom: '1px solid #EFEDE8', fontSize: 13, background: editingId === p.id ? '#FAFAF8' : 'transparent' }}>
                   <div style={{ width: 38, height: 44, borderRadius: 6, background: HATCH, flexShrink: 0, position: 'relative', overflow: 'hidden' }}>
-                    {hasImg && <img src={imgs[0]} alt={p.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
+                    {hasImg && <img src={imgs[0]} alt={displayName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
                   </div>
-                  <div style={{ fontWeight: 600 }}>{p.name}</div>
+                  <div style={{ fontWeight: 600 }}>{displayName}</div>
                   <div style={{ color: '#7C7870' }}>{p.category}</div>
-                  <div style={{ fontWeight: 700 }}>{money(p.price)}</div>
+                  <div style={{ fontWeight: 700 }}>{money(displayPrice)}</div>
                   <div style={{ color: '#A6A199' }}>{hasImg ? `${imgs.length}/3` : '0/3'}</div>
                   <button onClick={() => editingId === p.id ? setEditingId(null) : openEdit(p.id)} style={{ border: '1px solid #E7E4DE', borderRadius: 7, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', background: editingId === p.id ? '#181715' : 'transparent', color: editingId === p.id ? '#fff' : '#181715' }}>
                     {editingId === p.id ? 'Editing…' : 'Edit'}
@@ -656,14 +675,36 @@ function ProductsScreen({ productView, setProductView, productImages, setProduct
         )}
       </div>
 
-      {/* Image Edit Panel */}
+      {/* Edit Panel */}
       {editingProduct && (
         <div style={{ width: 300, flexShrink: 0, background: '#fff', border: '1px solid #E7E4DE', borderRadius: 12, padding: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-            <div style={{ fontSize: 14, fontWeight: 700 }}>Edit Images</div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+            <div style={{ fontSize: 14, fontWeight: 700 }}>Edit Product</div>
             <button onClick={() => setEditingId(null)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#A6A199', fontSize: 20, lineHeight: 1 }}>×</button>
           </div>
-          <div style={{ fontSize: 12, color: '#A6A199', marginBottom: 20 }}>{editingProduct.name}</div>
+
+          {/* Name */}
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: '#7C7870', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Product Name</div>
+            <input
+              value={draftName}
+              onChange={e => setDraftName(e.target.value)}
+              style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #E7E4DE', borderRadius: 7, padding: '9px 12px', fontSize: 13, fontFamily: 'inherit', outline: 'none' }}
+            />
+          </div>
+
+          {/* Price */}
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: '#7C7870', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Price (Rs.)</div>
+            <input
+              type="number"
+              value={draftPrice}
+              onChange={e => setDraftPrice(e.target.value)}
+              style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #E7E4DE', borderRadius: 7, padding: '9px 12px', fontSize: 13, fontFamily: 'inherit', outline: 'none' }}
+            />
+          </div>
+
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#A6A199', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Images</div>
 
           {[0, 1, 2].map(slot => (
             <div key={slot} style={{ marginBottom: 16 }}>
@@ -698,7 +739,7 @@ function ProductsScreen({ productView, setProductView, productImages, setProduct
             disabled={saving || uploading.some(Boolean)}
             style={{ width: '100%', background: '#181715', color: '#fff', border: 'none', borderRadius: 8, padding: '11px 0', fontSize: 13, fontWeight: 700, cursor: saving || uploading.some(Boolean) ? 'not-allowed' : 'pointer', opacity: saving || uploading.some(Boolean) ? 0.6 : 1, marginTop: 4 }}
           >
-            {saving ? 'Saving…' : uploading.some(Boolean) ? 'Uploading…' : 'Save Images'}
+            {saving ? 'Saving…' : uploading.some(Boolean) ? 'Uploading…' : 'Save Changes'}
           </button>
           <button onClick={() => setEditingId(null)} style={{ width: '100%', background: 'transparent', color: '#7C7870', border: '1px solid #E7E4DE', borderRadius: 8, padding: '9px 0', fontSize: 13, fontWeight: 600, cursor: 'pointer', marginTop: 8 }}>
             Cancel
