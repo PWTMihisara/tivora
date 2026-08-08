@@ -31,10 +31,18 @@ export default function PDPView() {
 
   const product = selectedProduct();
   const related = relatedProducts();
-  const savedImages = useSharedStore(s => s.productImages[product?.id ?? '']);
+  const savedImages  = useSharedStore(s => s.productImages[product?.id ?? '']);
+  const stockBySize  = useSharedStore(s => s.inventory[product?.id ?? ''] ?? {});
   const images = savedImages?.length ? savedImages : product?.images;
 
+  const isSizeOutOfStock = (sz: Size) => {
+    if (Object.keys(stockBySize).length === 0) return false; // no inventory data = assume available
+    return (stockBySize[sz] ?? 0) === 0;
+  };
+  const selectedSizeOos = selectedSize ? isSizeOutOfStock(selectedSize) : false;
+
   const handleAddToCart = () => {
+    if (selectedSizeOos) return;
     addSelectedToCart();
     setAdded(true);
     setTimeout(() => setAdded(false), 3000);
@@ -110,25 +118,44 @@ export default function PDPView() {
           {/* Size */}
           <div style={{ font: "700 11px 'Inter',sans-serif", letterSpacing: '0.14em', marginBottom: 12 }}>SIZE</div>
           <div className="pdp-sizes flex gap-[10px]" style={{ marginBottom: 24 }}>
-            {SIZES.map(sz => (
-              <button
-                key={sz}
-                onClick={() => selectSize(sz)}
-                style={{
-                  width: 48, height: 44, cursor: 'pointer',
-                  border: `1px solid ${selectedSize === sz ? '#0a0a0a' : 'rgba(10,10,10,0.3)'}`,
-                  background: selectedSize === sz ? '#0a0a0a' : 'none',
-                  color: selectedSize === sz ? '#fff' : '#0a0a0a',
-                  font: "500 12px 'Inter',sans-serif",
-                }}
-              >
-                {sz}
-              </button>
-            ))}
+            {SIZES.map(sz => {
+              const oos = isSizeOutOfStock(sz);
+              return (
+                <button
+                  key={sz}
+                  onClick={() => !oos && selectSize(sz)}
+                  disabled={oos}
+                  title={oos ? 'Out of stock' : undefined}
+                  style={{
+                    width: 48, height: 44, cursor: oos ? 'not-allowed' : 'pointer',
+                    border: `1px solid ${selectedSize === sz ? '#0a0a0a' : 'rgba(10,10,10,0.3)'}`,
+                    background: oos ? '#f5f5f3' : selectedSize === sz ? '#0a0a0a' : 'none',
+                    color: oos ? '#c0bdb8' : selectedSize === sz ? '#fff' : '#0a0a0a',
+                    font: "500 12px 'Inter',sans-serif",
+                    position: 'relative', overflow: 'hidden',
+                  }}
+                >
+                  {sz}
+                  {oos && (
+                    <span style={{
+                      position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      pointerEvents: 'none',
+                    }}>
+                      <span style={{ position: 'absolute', width: '130%', height: 1, background: '#c0bdb8', transform: 'rotate(-45deg)' }} />
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
           {sizeError && (
             <div style={{ font: "500 12px 'Inter',sans-serif", color: '#b02a2a', marginBottom: 16 }}>
               Please select a size.
+            </div>
+          )}
+          {selectedSizeOos && (
+            <div style={{ font: "500 12px 'Inter',sans-serif", color: '#b02a2a', marginBottom: 16 }}>
+              This size is currently out of stock.
             </div>
           )}
 
@@ -136,14 +163,18 @@ export default function PDPView() {
           <div className="flex gap-[14px]" style={{ marginTop: 16, marginBottom: 16 }}>
             <button
               onClick={handleAddToCart}
+              disabled={selectedSizeOos}
               className={added ? 'added-btn' : ''}
               style={{
-                flex: 1, background: '#0a0a0a', color: '#fff', border: 'none',
-                padding: 18, font: "700 12px/1 'Inter',sans-serif", letterSpacing: '0.12em', cursor: 'pointer',
+                flex: 1, border: 'none', padding: 18,
+                font: "700 12px/1 'Inter',sans-serif", letterSpacing: '0.12em',
+                cursor: selectedSizeOos ? 'not-allowed' : 'pointer',
+                background: selectedSizeOos ? '#c0bdb8' : '#0a0a0a',
+                color: '#fff',
                 transition: 'background 0.3s ease',
               }}
             >
-              {added ? 'ADDED TO BAG ✓' : 'ADD TO BAG'}
+              {selectedSizeOos ? 'OUT OF STOCK' : added ? 'ADDED TO BAG ✓' : 'ADD TO BAG'}
             </button>
             <button
               onClick={() => toggleWishlist(product.id)}

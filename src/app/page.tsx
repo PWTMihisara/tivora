@@ -21,6 +21,7 @@ export default function Page() {
   const setUser             = useStore(s => s.setUser);
   const setProductImages    = useSharedStore(s => s.setProductImages);
   const setProductOverride  = useSharedStore(s => s.setProductOverride);
+  const setInventory        = useSharedStore(s => s.setInventory);
   const setCollectionBanner = useSharedStore(s => s.setCollectionBanner);
   const [authOpen, setAuthOpen] = useState(false);
 
@@ -60,6 +61,18 @@ export default function Page() {
           data.forEach(p => {
             if (p.images?.length) setProductImages(p.id, p.images);
             if (p.name || p.price != null) setProductOverride(p.id, { name: p.name, price: p.price });
+          });
+        }
+      })
+      .catch(console.error);
+
+    // Load inventory stock
+    fetch('/api/inventory')
+      .then(r => r.json())
+      .then((data: { product_id: string; variant: string; stock: number }[]) => {
+        if (Array.isArray(data)) {
+          data.forEach(row => {
+            if (row.product_id) setInventory(row.product_id, row.variant, row.stock);
           });
         }
       })

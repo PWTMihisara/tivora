@@ -32,6 +32,10 @@ interface SharedState {
   productOverrides: Record<string, { name?: string; price?: number }>;
   setProductOverride: (id: string, data: { name?: string; price?: number }) => void;
 
+  // Inventory stock: productId -> size -> stock count
+  inventory: Record<string, Record<string, number>>;
+  setInventory: (productId: string, size: string, stock: number) => void;
+
   // Collection banner images keyed by collection name
   collectionBanners: Record<string, string>;
   setCollectionBanner: (name: string, image: string) => void;
@@ -52,6 +56,10 @@ export const useSharedStore = create<SharedState>()(
       productOverrides: {},
       setProductOverride: (id, data) =>
         set(s => ({ productOverrides: { ...s.productOverrides, [id]: { ...s.productOverrides[id], ...data } } })),
+
+      inventory: {},
+      setInventory: (productId, size, stock) =>
+        set(s => ({ inventory: { ...s.inventory, [productId]: { ...s.inventory[productId], [size]: stock } } })),
 
       collectionBanners: {},
       setCollectionBanner: (name, image) =>
