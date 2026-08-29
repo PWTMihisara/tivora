@@ -46,6 +46,7 @@ export default function PDPView() {
   const related = relatedProducts();
   const savedImages  = useSharedStore(s => s.productImages[product?.id ?? '']);
   const stockBySize  = useSharedStore(s => s.inventory[product?.id ?? ''] ?? {});
+  const discount     = useSharedStore(s => s.productDiscounts[product?.id ?? '']);
   const images = savedImages?.length ? savedImages : product?.images;
 
   const isSizeOutOfStock = (sz: Size) => {
@@ -91,6 +92,16 @@ export default function PDPView() {
                 Product Shot {activeImage + 1} / 3
               </span>
             )}
+            {discount && (
+              <div style={{
+                position: 'absolute', top: 16, left: 16, zIndex: 10,
+                background: '#A6402E', color: '#fff',
+                padding: '6px 14px', borderRadius: 4,
+                font: "700 12px/1.2 'Inter',sans-serif", letterSpacing: '0.06em',
+              }}>
+                {discount.label || (discount.discount_type === 'percentage' ? `${discount.discount_value}% OFF` : `Rs. ${discount.discount_value} OFF`)}
+              </div>
+            )}
           </div>
 
           {/* Thumbnails */}
@@ -121,9 +132,32 @@ export default function PDPView() {
           <h1 className="pdp-title" style={{ font: "800 36px/1.15 'Archivo',sans-serif", margin: '0 0 14px', letterSpacing: '-0.01em' }}>
             {product.name}
           </h1>
-          <div className="pdp-price" style={{ font: "600 20px 'Inter',sans-serif", marginBottom: 28 }}>
-            {product.priceLabel}
-          </div>
+          {discount ? (() => {
+            const original = product.price;
+            const discounted = discount.discount_type === 'percentage'
+              ? original * (1 - discount.discount_value / 100)
+              : Math.max(0, original - discount.discount_value);
+            return (
+              <div className="pdp-price" style={{ marginBottom: 28, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <span style={{ font: "700 22px 'Inter',sans-serif", color: '#A6402E' }}>
+                  Rs. {discounted.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+                <span style={{ font: "400 16px 'Inter',sans-serif", color: '#9a9a96', textDecoration: 'line-through' }}>
+                  {product.priceLabel}
+                </span>
+                <span style={{
+                  font: "700 11px/1 'Inter',sans-serif", letterSpacing: '0.06em',
+                  background: '#A6402E', color: '#fff', padding: '5px 12px', borderRadius: 4,
+                }}>
+                  {discount.label || (discount.discount_type === 'percentage' ? `${discount.discount_value}% OFF` : `Rs. ${discount.discount_value} OFF`)}
+                </span>
+              </div>
+            );
+          })() : (
+            <div className="pdp-price" style={{ font: "600 20px 'Inter',sans-serif", marginBottom: 28 }}>
+              {product.priceLabel}
+            </div>
+          )}
           <p style={{ font: "400 15px/1.7 'Inter',sans-serif", color: '#4a4a48', maxWidth: 440, margin: '0 0 32px' }}>
             A considered piece cut from premium materials, finished by hand for a silhouette built to outlast the season.
           </p>

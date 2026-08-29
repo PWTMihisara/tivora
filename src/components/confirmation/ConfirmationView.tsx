@@ -10,6 +10,8 @@ export default function ConfirmationView() {
   const productImages = useSharedStore(s => s.productImages);
 
   const items = lastOrder?.items ?? [];
+  const subtotal = lastOrder?.subtotal ?? 0;
+  const tax = lastOrder?.tax ?? 0;
   const total = lastOrder?.total ?? 0;
   const firstName = lastOrder?.customerName?.split(' ')[0] ?? 'there';
 
@@ -97,16 +99,46 @@ export default function ConfirmationView() {
                   </div>
 
                   {/* Price */}
-                  <div style={{ font: "600 14px 'Inter',sans-serif", color: '#0a0a0a', flexShrink: 0 }}>
-                    {money(item.price * item.qty)}
+                  <div style={{ flexShrink: 0, textAlign: 'right' }}>
+                    {item.originalPrice ? (
+                      <>
+                        <div style={{ font: "600 14px 'Inter',sans-serif", color: '#A6402E' }}>
+                          {money(item.price * item.qty)}
+                        </div>
+                        <div style={{ font: "400 11px 'Inter',sans-serif", color: '#9a9a96', textDecoration: 'line-through' }}>
+                          {money(item.originalPrice * item.qty)}
+                        </div>
+                        <div style={{ font: "700 9px/1 'Inter',sans-serif", background: '#A6402E', color: '#fff', padding: '2px 6px', borderRadius: 3, marginTop: 3, display: 'inline-block' }}>
+                          {item.discountLabel}
+                        </div>
+                      </>
+                    ) : (
+                      <div style={{ font: "600 14px 'Inter',sans-serif", color: '#0a0a0a' }}>
+                        {money(item.price * item.qty)}
+                      </div>
+                    )}
                   </div>
                 </div>
               );
             })}
           </div>
 
-          {/* Total */}
-          <div style={{ borderTop: '1.5px solid #0a0a0a', paddingTop: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          {/* Summary */}
+          <div style={{ borderTop: '1px solid #f0ede8', paddingTop: 16, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ font: "400 13px 'Inter',sans-serif", color: '#8a8a86' }}>Subtotal</span>
+              <span style={{ font: "400 13px 'Inter',sans-serif", color: '#0a0a0a' }}>{money(subtotal)}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ font: "400 13px 'Inter',sans-serif", color: '#8a8a86' }}>Tax (5%)</span>
+              <span style={{ font: "400 13px 'Inter',sans-serif", color: '#0a0a0a' }}>{money(tax)}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ font: "400 13px 'Inter',sans-serif", color: '#8a8a86' }}>Shipping</span>
+              <span style={{ font: "400 13px 'Inter',sans-serif", color: '#0a0a0a' }}>Complimentary</span>
+            </div>
+          </div>
+          <div style={{ borderTop: '1.5px solid #0a0a0a', marginTop: 12, paddingTop: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ font: "600 13px 'Inter',sans-serif", color: '#0a0a0a', letterSpacing: '0.05em' }}>Total</span>
             <span style={{ font: "800 22px 'Archivo',sans-serif", color: '#0a0a0a', letterSpacing: '-0.01em' }}>{money(total)}</span>
           </div>

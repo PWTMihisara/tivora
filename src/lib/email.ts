@@ -11,7 +11,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-interface OrderItem { name: string; size: string; qty: number; price: number }
+interface OrderItem { name: string; size: string; qty: number; price: number; originalPrice?: number; discountLabel?: string }
 
 interface OrderEmailData {
   orderId:  string;
@@ -29,13 +29,21 @@ const money = (n: number) =>
   'Rs. ' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 function itemsTable(items: OrderItem[]) {
-  return items.map(i => `
+  return items.map(i => {
+    const hasDiscount = i.originalPrice && i.originalPrice !== i.price;
+    const priceCell = hasDiscount
+      ? `<span style="color:#A6402E;font-weight:600">${money(i.price * i.qty)}</span>
+         <br><span style="font-size:12px;color:#9a9a96;text-decoration:line-through">${money(i.originalPrice! * i.qty)}</span>
+         <br><span style="font-size:10px;font-weight:700;background:#A6402E;color:#fff;padding:2px 6px;border-radius:3px">${i.discountLabel}</span>`
+      : money(i.price * i.qty);
+    return `
     <tr>
       <td style="padding:10px 0;border-bottom:1px solid #f0ede8;font-size:14px;color:#0a0a0a">${i.name}</td>
       <td style="padding:10px 0;border-bottom:1px solid #f0ede8;font-size:14px;color:#6b6b6b;text-align:center">${i.size}</td>
       <td style="padding:10px 0;border-bottom:1px solid #f0ede8;font-size:14px;color:#6b6b6b;text-align:center">${i.qty}</td>
-      <td style="padding:10px 0;border-bottom:1px solid #f0ede8;font-size:14px;color:#0a0a0a;text-align:right">${money(i.price * i.qty)}</td>
-    </tr>`).join('');
+      <td style="padding:10px 0;border-bottom:1px solid #f0ede8;font-size:14px;color:#0a0a0a;text-align:right">${priceCell}</td>
+    </tr>`;
+  }).join('');
 }
 
 function confirmationHtml(d: OrderEmailData) {
@@ -131,7 +139,13 @@ function adminAlertHtml(d: OrderEmailData) {
       <tr><td style="font-size:13px;color:#6b6b6b;padding:4px 0">Total</td><td style="font-size:15px;color:#0a0a0a;font-weight:700">${money(d.total)}</td></tr>
     </table>
     <div style="border-top:1px solid #e7e5e0;padding-top:16px">
-      ${d.items.map(i => `<div style="font-size:13px;color:#0a0a0a;padding:3px 0">${i.qty}× ${i.name} — ${i.size} — ${money(i.price)}</div>`).join('')}
+      ${d.items.map(i => {
+        const hasDiscount = i.originalPrice && i.originalPrice !== i.price;
+        const priceStr = hasDiscount
+          ? `<span style="color:#A6402E;font-weight:600">${money(i.price)}</span> <span style="text-decoration:line-through;color:#9a9a96">${money(i.originalPrice!)}</span> <span style="font-size:10px;background:#A6402E;color:#fff;padding:1px 5px;border-radius:3px">${i.discountLabel}</span>`
+          : money(i.price);
+        return `<div style="font-size:13px;color:#0a0a0a;padding:3px 0">${i.qty}× ${i.name} — ${i.size} — ${priceStr}</div>`;
+      }).join('')}
     </div>
   </div>
 </body>

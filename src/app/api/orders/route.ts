@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
 
   if (orderError) return NextResponse.json({ error: orderError.message }, { status: 500 });
 
-  const items = (body.items as { name: string; size: string; qty: number; price: number }[]).map(i => ({
+  const items = (body.items as { name: string; size: string; qty: number; price: number; originalPrice?: number; discountLabel?: string }[]).map(i => ({
     order_id:     orderId,
     product_name: i.name,
     size:         i.size,
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
   if (itemsError) return NextResponse.json({ error: itemsError.message }, { status: 500 });
 
   // Decrement inventory stock for each ordered item
-  for (const item of body.items as { name: string; size: string; qty: number; price: number }[]) {
+  for (const item of body.items as { name: string; size: string; qty: number; price: number; originalPrice?: number; discountLabel?: string }[]) {
     const { data: product } = await db.from('products').select('id').eq('name', item.name).single();
     if (product) {
       await db.rpc('decrement_inventory', {

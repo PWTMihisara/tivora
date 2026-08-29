@@ -107,6 +107,17 @@ export default function Page() {
       })
       .catch(console.error);
 
+    // Load product discounts
+    fetch('/api/discounts')
+      .then(r => r.json())
+      .then((data: { product_id: string; discount_type: 'percentage' | 'fixed'; discount_value: number; label?: string; active: boolean }[]) => {
+        if (Array.isArray(data)) {
+          const setDiscount = useSharedStore.getState().setProductDiscount;
+          data.filter(d => d.active).forEach(d => setDiscount(d.product_id, { discount_type: d.discount_type, discount_value: d.discount_value, label: d.label }));
+        }
+      })
+      .catch(console.error);
+
     // Load site settings (announcement bar etc.)
     fetch('/api/settings')
       .then(r => r.json())

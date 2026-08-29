@@ -16,6 +16,7 @@ export default function ProductCard({ product, onSelect, onQuickAdd, onQuickView
   const toggleWishlist = useStore(s => s.toggleWishlist);
   const storeWished    = useStore(s => !!s.wishlist[product.id]);
   const savedImages    = useSharedStore(s => s.productImages[product.id]);
+  const discount       = useSharedStore(s => s.productDiscounts[product.id]);
   const images         = savedImages?.length ? savedImages : product.images;
 
   // Local state gives instant visual feedback independent of store re-render timing
@@ -69,6 +70,18 @@ export default function ProductCard({ product, onSelect, onQuickAdd, onQuickView
           >
             Product Shot
           </span>
+        )}
+
+        {/* Discount badge */}
+        {discount && (
+          <div style={{
+            position: 'absolute', top: 12, left: 12, zIndex: 20,
+            background: '#A6402E', color: '#fff',
+            padding: '4px 10px', borderRadius: 4,
+            font: "700 10px/1.2 'Inter',sans-serif", letterSpacing: '0.06em',
+          }}>
+            {discount.label || (discount.discount_type === 'percentage' ? `${discount.discount_value}% OFF` : `Rs. ${discount.discount_value} OFF`)}
+          </div>
         )}
 
         {/* Wishlist heart — positioned absolutely, z-index above everything */}
@@ -127,9 +140,26 @@ export default function ProductCard({ product, onSelect, onQuickAdd, onQuickView
       <div style={{ font: "600 14px 'Inter',sans-serif", marginBottom: 6 }}>
         {product.name}
       </div>
-      <div style={{ font: "500 13px 'Inter',sans-serif", color: '#0a0a0a' }}>
-        {product.priceLabel}
-      </div>
+      {discount ? (() => {
+        const original = product.price;
+        const discounted = discount.discount_type === 'percentage'
+          ? original * (1 - discount.discount_value / 100)
+          : Math.max(0, original - discount.discount_value);
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ font: "500 13px 'Inter',sans-serif", color: '#A6402E', fontWeight: 700 }}>
+              Rs. {discounted.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+            <span style={{ font: "400 12px 'Inter',sans-serif", color: '#9a9a96', textDecoration: 'line-through' }}>
+              {product.priceLabel}
+            </span>
+          </div>
+        );
+      })() : (
+        <div style={{ font: "500 13px 'Inter',sans-serif", color: '#0a0a0a' }}>
+          {product.priceLabel}
+        </div>
+      )}
     </div>
   );
 }

@@ -39,6 +39,11 @@ interface SharedState {
   // Collection banner images keyed by collection name
   collectionBanners: Record<string, string>;
   setCollectionBanner: (name: string, image: string) => void;
+
+  // Product discounts keyed by product ID
+  productDiscounts: Record<string, { discount_type: 'percentage' | 'fixed'; discount_value: number; label?: string }>;
+  setProductDiscount: (id: string, data: { discount_type: 'percentage' | 'fixed'; discount_value: number; label?: string }) => void;
+  removeProductDiscount: (id: string) => void;
 }
 
 export const useSharedStore = create<SharedState>()(
@@ -64,6 +69,16 @@ export const useSharedStore = create<SharedState>()(
       collectionBanners: {},
       setCollectionBanner: (name, image) =>
         set(s => ({ collectionBanners: { ...s.collectionBanners, [name]: image } })),
+
+      productDiscounts: {},
+      setProductDiscount: (id, data) =>
+        set(s => ({ productDiscounts: { ...s.productDiscounts, [id]: data } })),
+      removeProductDiscount: (id) =>
+        set(s => {
+          const next = { ...s.productDiscounts };
+          delete next[id];
+          return { productDiscounts: next };
+        }),
     }),
     {
       name: 'tivora-shared',

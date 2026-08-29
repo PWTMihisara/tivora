@@ -73,7 +73,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
 /* ─── Types ─────────────────────────────────────────────────────────────────── */
 
 type OrderStatus = 'Pending' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
-type Screen = 'dashboard' | 'orders' | 'products' | 'inventory' | 'collections' | 'customers' | 'analytics' | 'settings';
+type Screen = 'dashboard' | 'orders' | 'products' | 'inventory' | 'collections' | 'customers' | 'analytics' | 'discounts' | 'settings';
 
 interface OrderItem { name: string; variant: string; qty: number; price: number }
 interface Order {
@@ -167,12 +167,13 @@ const SCREEN_META: Record<Screen, { title: string; subtitle: string }> = {
   collections: { title: 'Collections', subtitle: 'Organize products into collections' },
   customers:   { title: 'Customers',   subtitle: 'View customer profiles and value'   },
   analytics:   { title: 'Analytics',   subtitle: 'Deep dive into sales performance'   },
+  discounts:   { title: 'Discounts',   subtitle: 'Manage product discounts & sales'   },
   settings:    { title: 'Settings',    subtitle: 'Store configuration'                },
 };
 
 const NAV_GROUPS: { label: string; items: { key: Screen; label: string; badge?: boolean }[] }[] = [
   { label: 'General', items: [{ key: 'dashboard', label: 'Dashboard' }, { key: 'analytics', label: 'Analytics' }] },
-  { label: 'Catalog', items: [{ key: 'products', label: 'Products' }, { key: 'collections', label: 'Collections' }, { key: 'inventory', label: 'Inventory' }] },
+  { label: 'Catalog', items: [{ key: 'products', label: 'Products' }, { key: 'collections', label: 'Collections' }, { key: 'inventory', label: 'Inventory' }, { key: 'discounts', label: 'Discounts' }] },
   { label: 'Sales',   items: [{ key: 'orders', label: 'Orders', badge: true }, { key: 'customers', label: 'Customers' }] },
   { label: 'System',  items: [{ key: 'settings', label: 'Settings' }] },
 ];
@@ -1127,6 +1128,270 @@ function AnalyticsScreen({ orders }: { orders: Order[] }) {
 
 /* ─── Settings ───────────────────────────────────────────────────────────────── */
 
+/* ─── Discounts Screen ───────────────────────────────────────────────────────── */
+
+interface Discount {
+  product_id: string;
+  discount_type: 'percentage' | 'fixed';
+  discount_value: number;
+  label?: string;
+  active: boolean;
+}
+
+function DiscountsScreen({ productImages }: { productImages: Record<string, string[]> }) {
+  const [discounts, setDiscounts] = useState<Discount[]>([]);
+  const [loading, setLoading]     = useState(true);
+  const [editId, setEditId]       = useState<string | null>(null);
+  const [dType, setDType]         = useState<'percentage' | 'fixed'>('percentage');
+  const [dValue, setDValue]       = useState('');
+  const [dLabel, setDLabel]       = useState('');
+  const [saving, setSaving]       = useState(false);
+  const [showAdd, setShowAdd]     = useState(false);
+  const [addProduct, setAddProduct] = useState('');
+
+  const setProductDiscount   = useSharedStore(s => s.setProductDiscount);
+  const removeProductDiscount = useSharedStore(s => s.removeProductDiscount);
+  const productOverrides     = useSharedStore(s => s.productOverrides);
+
+  const getPrice = (p: typeof STOREFRONT_PRODUCTS[number]) => productOverrides[p.id]?.price ?? p.price;
+
+  useEffect(() => {
+    fetch('/api/discounts')
+      .then(r => r.json())
+      .then((data: Discount[]) => { if (Array.isArray(data)) setDiscounts(data); })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const productsWithDiscount = new Set(discounts.filter(d => d.active).map(d => d.product_id));
+  const availableProducts = STOREFRONT_PRODUCTS.filter(p => !productsWithDiscount.has(p.id));
+
+  const openEdit = (d: Discount) => {
+    setEditId(d.product_id);
+    setDType(d.discount_type);
+    setDValue(String(d.discount_value));
+    setDLabel(d.label || '');
+  };
+
+  const handleSave = async (productId: string) => {
+    if (!dValue || isNaN(Number(dValue)) || Number(dValue) <= 0) return;
+    setSaving(true);
+    try {
+      const res = await fetch('/api/discounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ product_id: productId, discount_type: dType, discount_value: Number(dValue), label: dLabel || null, active: true }),
+      });
+      if (res.ok) {
+        const saved = await res.json();
+        setDiscounts(prev => {
+          const existing = prev.findIndex(d => d.product_id === productId);
+          if (existing >= 0) { const next = [...prev]; next[existing] = saved; return next; }
+          return [saved, ...prev];
+        });
+        setProductDiscount(productId, { discount_type: dType, discount_value: Number(dValue), label: dLabel || undefined });
+        setEditId(null);
+        setShowAdd(false);
+        setAddProduct('');
+      }
+    } catch { /* ignore */ }
+    setSaving(false);
+  };
+
+  const handleDelete = async (productId: string) => {
+    await fetch('/api/discounts', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ product_id: productId }),
+    });
+    setDiscounts(prev => prev.filter(d => d.product_id !== productId));
+    removeProductDiscount(productId);
+  };
+
+  const getProduct = (id: string) => STOREFRONT_PRODUCTS.find(p => p.id === id);
+  const calcDiscounted = (price: number, type: string, value: number) =>
+    type === 'percentage' ? price * (1 - value / 100) : Math.max(0, price - value);
+
+  const inputSty: React.CSSProperties = {
+    width: '100%', boxSizing: 'border-box', border: '1px solid #E7E4DE',
+    borderRadius: 8, padding: '10px 14px', fontSize: 13, fontFamily: 'inherit',
+    outline: 'none', background: '#fff',
+  };
+
+  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: '#A6A199' }}>Loading discounts...</div>;
+
+  return (
+    <div style={{ maxWidth: 860 }}>
+      {/* Add new discount */}
+      {!showAdd ? (
+        <button
+          onClick={() => { setShowAdd(true); setDType('percentage'); setDValue(''); setDLabel(''); setAddProduct(availableProducts[0]?.id || ''); }}
+          style={{
+            background: '#181715', color: '#fff', border: 'none', borderRadius: 10, padding: '12px 24px',
+            fontSize: 13, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.04em', marginBottom: 24,
+          }}
+        >
+          + Add Discount
+        </button>
+      ) : (
+        <div style={{ background: '#fff', border: '1px solid #E7E4DE', borderRadius: 12, padding: 24, marginBottom: 24 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>New Discount</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#7C7870', marginBottom: 6 }}>Product</div>
+              <select
+                value={addProduct}
+                onChange={e => setAddProduct(e.target.value)}
+                style={{ ...inputSty, cursor: 'pointer' }}
+              >
+                {availableProducts.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#7C7870', marginBottom: 6 }}>Type</div>
+              <select value={dType} onChange={e => setDType(e.target.value as 'percentage' | 'fixed')} style={{ ...inputSty, cursor: 'pointer' }}>
+                <option value="percentage">Percentage (%)</option>
+                <option value="fixed">Fixed Amount (Rs.)</option>
+              </select>
+            </div>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#7C7870', marginBottom: 6 }}>Value</div>
+              <input type="number" value={dValue} onChange={e => setDValue(e.target.value)} placeholder={dType === 'percentage' ? 'e.g. 20' : 'e.g. 200'} style={inputSty} />
+            </div>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#7C7870', marginBottom: 6 }}>Label (optional)</div>
+              <input value={dLabel} onChange={e => setDLabel(e.target.value)} placeholder="e.g. Summer Sale" style={inputSty} />
+            </div>
+          </div>
+          {/* Preview */}
+          {addProduct && dValue && Number(dValue) > 0 && (() => {
+            const p = getProduct(addProduct);
+            if (!p) return null;
+            const actualPrice = getPrice(p);
+            const discounted = calcDiscounted(actualPrice, dType, Number(dValue));
+            return (
+              <div style={{ background: '#F7F5F2', borderRadius: 8, padding: '14px 18px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 16 }}>
+                <div style={{ width: 48, height: 48, borderRadius: 8, background: HATCH, overflow: 'hidden', flexShrink: 0, position: 'relative' }}>
+                  {productImages[addProduct]?.[0] && <img src={productImages[addProduct][0]} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700 }}>{p.name}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                    <span style={{ fontSize: 13, color: '#A6A199', textDecoration: 'line-through' }}>{money(actualPrice)}</span>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: '#A6402E' }}>{money(discounted)}</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, background: '#A6402E', color: '#fff', padding: '2px 8px', borderRadius: 4 }}>
+                      {dType === 'percentage' ? `${dValue}% OFF` : `Rs. ${dValue} OFF`}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button
+              onClick={() => handleSave(addProduct)}
+              disabled={saving || !addProduct || !dValue}
+              style={{
+                background: '#181715', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px',
+                fontSize: 13, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.04em',
+                opacity: saving || !addProduct || !dValue ? 0.5 : 1,
+              }}
+            >
+              {saving ? 'Saving…' : 'Create Discount'}
+            </button>
+            <button onClick={() => { setShowAdd(false); setAddProduct(''); }} style={{ background: 'none', border: '1px solid #E7E4DE', borderRadius: 8, padding: '10px 20px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Discounts list */}
+      {discounts.length === 0 ? (
+        <div style={{ background: '#fff', border: '1px solid #E7E4DE', borderRadius: 12, padding: '48px 24px', textAlign: 'center' }}>
+          <div style={{ fontSize: 32, marginBottom: 12 }}>%</div>
+          <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>No discounts yet</div>
+          <div style={{ fontSize: 13, color: '#A6A199' }}>Create your first product discount to attract more customers.</div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {discounts.map(d => {
+            const p = getProduct(d.product_id);
+            if (!p) return null;
+            const actualPrice = getPrice(p);
+            const discounted = calcDiscounted(actualPrice, d.discount_type, d.discount_value);
+            const isEditing = editId === d.product_id;
+
+            return (
+              <div key={d.product_id} style={{ background: '#fff', border: `1px solid ${isEditing ? '#181715' : '#E7E4DE'}`, borderRadius: 12, padding: 20, transition: 'border-color 0.2s' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                  {/* Product image */}
+                  <div style={{ width: 56, height: 56, borderRadius: 10, background: HATCH, overflow: 'hidden', flexShrink: 0, position: 'relative' }}>
+                    {productImages[d.product_id]?.[0] && <img src={productImages[d.product_id][0]} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
+                  </div>
+
+                  {/* Info */}
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>{p.name}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 13, color: '#A6A199', textDecoration: 'line-through' }}>{money(actualPrice)}</span>
+                      <span style={{ fontSize: 14, fontWeight: 800, color: '#A6402E' }}>{money(discounted)}</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, background: '#A6402E', color: '#fff', padding: '2px 8px', borderRadius: 4 }}>
+                        {d.discount_type === 'percentage' ? `${d.discount_value}% OFF` : `Rs. ${d.discount_value} OFF`}
+                      </span>
+                      {d.label && <span style={{ fontSize: 11, fontWeight: 600, background: '#EAF3EC', color: '#2F6B45', padding: '2px 8px', borderRadius: 4 }}>{d.label}</span>}
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={() => isEditing ? setEditId(null) : openEdit(d)} style={{ background: 'none', border: '1px solid #E7E4DE', borderRadius: 8, padding: '8px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                      {isEditing ? 'Cancel' : 'Edit'}
+                    </button>
+                    <button onClick={() => handleDelete(d.product_id)} style={{ background: '#FBEAE7', color: '#A6402E', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                      Remove
+                    </button>
+                  </div>
+                </div>
+
+                {/* Edit form */}
+                {isEditing && (
+                  <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #EFEDE8' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 14 }}>
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: '#7C7870', marginBottom: 6 }}>Type</div>
+                        <select value={dType} onChange={e => setDType(e.target.value as 'percentage' | 'fixed')} style={{ ...inputSty, cursor: 'pointer' }}>
+                          <option value="percentage">Percentage (%)</option>
+                          <option value="fixed">Fixed (Rs.)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: '#7C7870', marginBottom: 6 }}>Value</div>
+                        <input type="number" value={dValue} onChange={e => setDValue(e.target.value)} style={inputSty} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: '#7C7870', marginBottom: 6 }}>Label</div>
+                        <input value={dLabel} onChange={e => setDLabel(e.target.value)} placeholder="e.g. Summer Sale" style={inputSty} />
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleSave(d.product_id)}
+                      disabled={saving}
+                      style={{ background: '#181715', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 13, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.04em' }}
+                    >
+                      {saving ? 'Saving…' : 'Save Changes'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SettingsScreen({ notifPrefs, toggleNotif, announcementBar, setAnnouncementBar }: {
   notifPrefs: Record<string, boolean>; toggleNotif: (key: string) => void;
   announcementBar: string; setAnnouncementBar: (v: string) => void;
@@ -1494,17 +1759,21 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 
   const productImages        = useSharedStore(s => s.productImages);
   const setProductImages     = useSharedStore(s => s.setProductImages);
+  const setProductOverride   = useSharedStore(s => s.setProductOverride);
   const collectionBanners    = useSharedStore(s => s.collectionBanners);
   const setCollectionBanner  = useSharedStore(s => s.setCollectionBanner);
 
   // Fetch real data from API on mount
   useEffect(() => {
-    // Load product images from Supabase
+    // Load product images and price/name overrides from Supabase
     fetch('/api/products')
       .then(r => r.json())
-      .then((data: { id: string; images: string[] | null }[]) => {
+      .then((data: { id: string; name?: string; price?: number; images: string[] | null }[]) => {
         if (Array.isArray(data)) {
-          data.forEach(p => { if (p.images?.length) setProductImages(p.id, p.images); });
+          data.forEach(p => {
+            if (p.images?.length) setProductImages(p.id, p.images);
+            if (p.name || p.price != null) setProductOverride(p.id, { name: p.name, price: p.price });
+          });
         }
       })
       .catch(console.error);
@@ -1551,6 +1820,17 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       .then((data: { name: string; banner_url: string | null }[]) => {
         if (Array.isArray(data)) {
           data.forEach(c => { if (c.banner_url) setCollectionBanner(c.name, c.banner_url); });
+        }
+      })
+      .catch(console.error);
+
+    // Load product discounts
+    fetch('/api/discounts')
+      .then(r => r.json())
+      .then((data: { product_id: string; discount_type: 'percentage' | 'fixed'; discount_value: number; label?: string; active: boolean }[]) => {
+        if (Array.isArray(data)) {
+          const setDiscount = useSharedStore.getState().setProductDiscount;
+          data.filter(d => d.active).forEach(d => setDiscount(d.product_id, { discount_type: d.discount_type, discount_value: d.discount_value, label: d.label }));
         }
       })
       .catch(console.error);
@@ -1603,6 +1883,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           {screen === 'collections' && <CollectionsScreen collections={collections} collectionBanners={collectionBanners} setCollectionBanner={setCollectionBanner} toggleCollection={toggleCollection} />}
           {screen === 'customers'   && <CustomersScreen orders={allOrders} />}
           {screen === 'analytics'   && <AnalyticsScreen orders={allOrders} />}
+          {screen === 'discounts'   && <DiscountsScreen productImages={productImages} />}
           {screen === 'settings'    && <SettingsScreen notifPrefs={notifPrefs} toggleNotif={key => setNotifPrefs(p => ({ ...p, [key]: !p[key] }))} announcementBar={announcementBar} setAnnouncementBar={setAnnouncementBar} />}
         </div>
       </div>

@@ -74,7 +74,9 @@ interface StoreState {
   // Last placed order (for confirmation page)
   lastOrder: {
     customerName: string;
-    items: { id: string; name: string; size: string; qty: number; price: number }[];
+    items: { id: string; name: string; size: string; qty: number; price: number; originalPrice?: number; discountLabel?: string }[];
+    subtotal: number;
+    tax: number;
     total: number;
   } | null;
 
@@ -161,10 +163,17 @@ export const useStore = create<StoreState>()(
     if (!size) { set({ sizeError: true }); return; }
     const product = PRODUCTS.find(p => p.id === productId);
     if (!product) return;
-    const overrides = useSharedStore.getState().productOverrides;
-    const ov = overrides[productId];
+    const shared = useSharedStore.getState();
+    const ov = shared.productOverrides[productId];
+    const discount = shared.productDiscounts[productId];
     const name  = ov?.name  ?? product.name;
-    const price = ov?.price ?? product.price;
+    let price = ov?.price ?? product.price;
+    if (discount) {
+      price = discount.discount_type === 'percentage'
+        ? price * (1 - discount.discount_value / 100)
+        : Math.max(0, price - discount.discount_value);
+      price = Math.round(price * 100) / 100;
+    }
     set(s => {
       const idx = s.cart.findIndex(c => c.id === productId && c.size === size);
       let cart: CartLine[];
@@ -196,9 +205,25 @@ export const useStore = create<StoreState>()(
   goCheckout: () => set({ view: 'checkout', cartOpen: false }),
   placeOrder: () => {
     const { cart, checkoutForm, subtotal } = get();
+    const shared = useSharedStore.getState();
     const sub = subtotal();
     const tax = Math.round(sub * 0.05);
     const total = sub + tax;
+
+    // Build items with discount info for confirmation
+    const itemsWithDiscount = cart.map(c => {
+      const discount = shared.productDiscounts[c.id];
+      const ov = shared.productOverrides[c.id];
+      const basePrice = ov?.price ?? (PRODUCTS.find(p => p.id === c.id)?.price ?? c.price);
+      const hasDiscount = discount && basePrice !== c.price;
+      return {
+        id: c.id, name: c.name, size: c.size, qty: c.qty, price: c.price,
+        originalPrice: hasDiscount ? basePrice : undefined,
+        discountLabel: hasDiscount
+          ? (discount.label || (discount.discount_type === 'percentage' ? `${discount.discount_value}% OFF` : `Rs. ${discount.discount_value} OFF`))
+          : undefined,
+      };
+    });
 
     // Save to real database
     fetch('/api/orders', {
@@ -209,7 +234,7 @@ export const useStore = create<StoreState>()(
         email:    checkoutForm.email,
         phone:    checkoutForm.phone || null,
         address:  [checkoutForm.address, checkoutForm.city, checkoutForm.zip].filter(Boolean).join(', '),
-        items:    cart.map(c => ({ name: c.name, size: c.size, qty: c.qty, price: c.price })),
+        items:    itemsWithDiscount.map(c => ({ name: c.name, size: c.size, qty: c.qty, price: c.price, originalPrice: c.originalPrice, discountLabel: c.discountLabel })),
         payment:  'Pending',
         shipping: 0,
         tax,
@@ -223,7 +248,9 @@ export const useStore = create<StoreState>()(
       cart: [],
       lastOrder: {
         customerName: checkoutForm.name || 'Guest',
-        items: cart.map(c => ({ id: c.id, name: c.name, size: c.size, qty: c.qty, price: c.price })),
+        items: itemsWithDiscount,
+        subtotal: sub,
+        tax,
         total,
       },
     });

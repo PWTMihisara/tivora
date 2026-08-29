@@ -18,6 +18,7 @@ export default function QuickViewModal({ product, onClose }: Props) {
   const savedImages   = useSharedStore(s => s.productImages[product.id]);
   const stockBySize   = useSharedStore(s => s.inventory[product.id] ?? {});
   const overrides     = useSharedStore(s => s.productOverrides[product.id]);
+  const discount      = useSharedStore(s => s.productDiscounts[product.id]);
   const images        = savedImages?.length ? savedImages : product.images;
 
   const name  = overrides?.name  ?? product.name;
@@ -96,9 +97,24 @@ export default function QuickViewModal({ product, onClose }: Props) {
           <div style={{ font: "800 24px/1.15 'Archivo',sans-serif", letterSpacing: '-0.01em', marginBottom: 10 }}>
             {name}
           </div>
-          <div style={{ font: "600 18px 'Inter',sans-serif", marginBottom: 20 }}>
-            {money(price)}
-          </div>
+          {discount ? (() => {
+            const discounted = discount.discount_type === 'percentage'
+              ? price * (1 - discount.discount_value / 100)
+              : Math.max(0, price - discount.discount_value);
+            return (
+              <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <span style={{ font: "700 18px 'Inter',sans-serif", color: '#A6402E' }}>{money(discounted)}</span>
+                <span style={{ font: "400 14px 'Inter',sans-serif", color: '#9a9a96', textDecoration: 'line-through' }}>{money(price)}</span>
+                <span style={{ font: "700 10px/1 'Inter',sans-serif", background: '#A6402E', color: '#fff', padding: '3px 8px', borderRadius: 3, letterSpacing: '0.04em' }}>
+                  {discount.label || (discount.discount_type === 'percentage' ? `${discount.discount_value}% OFF` : `Rs. ${discount.discount_value} OFF`)}
+                </span>
+              </div>
+            );
+          })() : (
+            <div style={{ font: "600 18px 'Inter',sans-serif", marginBottom: 20 }}>
+              {money(price)}
+            </div>
+          )}
           <p style={{ font: "400 13px/1.6 'Inter',sans-serif", color: '#4a4a48', margin: '0 0 24px' }}>
             A considered piece cut from premium materials, finished by hand for a silhouette built to outlast the season.
           </p>

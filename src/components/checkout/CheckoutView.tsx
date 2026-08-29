@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useStore } from '@/store/useStore';
+import { useSharedStore } from '@/store/useSharedStore';
+import { PRODUCTS } from '@/data/products';
 import { Address } from '@/components/account/AccountView';
 
 const inputStyle: React.CSSProperties = {
@@ -21,6 +23,8 @@ export default function CheckoutView() {
   const subtotalLabel    = useStore(s => s.subtotalLabel);
   const placeOrder       = useStore(s => s.placeOrder);
   const user             = useStore(s => s.user);
+  const productDiscounts = useSharedStore(s => s.productDiscounts);
+  const productOverrides = useSharedStore(s => s.productOverrides);
 
   const [addresses, setAddresses]   = useState<Address[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -180,12 +184,27 @@ export default function CheckoutView() {
         <div>
           <div style={{ border: '1px solid rgba(10,10,10,0.12)', padding: 28 }}>
             <div style={{ font: "700 12px 'Inter',sans-serif", letterSpacing: '0.12em', marginBottom: 20 }}>ORDER SUMMARY</div>
-            {lines.map(c => (
-              <div key={`${c.id}-${c.size}`} className="flex justify-between mb-3" style={{ font: "400 13px 'Inter',sans-serif" }}>
-                <span>{c.name} ({c.size}) ×{c.qty}</span>
-                <span>{c.lineTotalLabel}</span>
-              </div>
-            ))}
+            {lines.map(c => {
+              const discount = productDiscounts[c.id];
+              const basePrice = productOverrides[c.id]?.price ?? (PRODUCTS.find(p => p.id === c.id)?.price ?? c.price);
+              const hasDiscount = discount && basePrice !== c.price;
+              return (
+                <div key={`${c.id}-${c.size}`} style={{ marginBottom: 12 }}>
+                  <div className="flex justify-between" style={{ font: "400 13px 'Inter',sans-serif" }}>
+                    <span>{c.name} ({c.size}) ×{c.qty}</span>
+                    <span style={hasDiscount ? { color: '#A6402E', fontWeight: 600 } : undefined}>{c.lineTotalLabel}</span>
+                  </div>
+                  {hasDiscount && (
+                    <div className="flex justify-between" style={{ marginTop: 2 }}>
+                      <span style={{ font: "700 10px 'Inter',sans-serif", background: '#A6402E', color: '#fff', padding: '2px 6px', borderRadius: 3 }}>
+                        {discount.label || (discount.discount_type === 'percentage' ? `${discount.discount_value}% OFF` : `Rs. ${discount.discount_value} OFF`)}
+                      </span>
+                      <span style={{ font: "400 11px 'Inter',sans-serif", color: '#9a9a96', textDecoration: 'line-through' }}>{money(basePrice * c.qty)}</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
             <div style={{ height: 1, background: 'rgba(10,10,10,0.12)', margin: '16px 0' }} />
 
             {/* Promo code */}
@@ -235,11 +254,14 @@ export default function CheckoutView() {
                 <span>Discount</span><span>−{money(promoDiscount.discount_amount)}</span>
               </div>
             )}
+            <div className="flex justify-between mb-2" style={{ font: "400 13px 'Inter',sans-serif" }}>
+              <span>Tax (5%)</span><span>{money(Math.round((subtotal() - (promoDiscount?.discount_amount ?? 0)) * 0.05))}</span>
+            </div>
             <div className="flex justify-between mb-4" style={{ font: "400 13px 'Inter',sans-serif" }}>
               <span>Shipping</span><span>Complimentary</span>
             </div>
             <div className="flex justify-between mb-6" style={{ font: "700 15px 'Inter',sans-serif" }}>
-              <span>Total</span><span>{money(subtotal() - (promoDiscount?.discount_amount ?? 0))}</span>
+              <span>Total</span><span>{money((subtotal() - (promoDiscount?.discount_amount ?? 0)) + Math.round((subtotal() - (promoDiscount?.discount_amount ?? 0)) * 0.05))}</span>
             </div>
             <button
               onClick={placeOrder}
